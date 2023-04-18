@@ -137,10 +137,15 @@ initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix(
 
 # Call the new function to find the stationary distribution (pmf)
 pmf = network.find_stationary_distribution(sparse_matrix, initial_vector)
-print("Probability mass function (pmf):", pmf)
-# Execute 10 steps and display the network states
-for i in range(10):
-    print([network.G.nodes[i]["state"] for i in range(network.N)])
-    network.step()
-    network.plot_states()
+           
+attractor_states = []
+for state in range(2**10):
+    if pmf[state] > 0:
+        attractor_states.append(state)
+
+# Print the probability of each attractor state
+for state in attractor_states:
+    binary_state = format(state, '010b')  # Convert state to binary string with 10 digits
+    probability = pmf[state]
+    print(f"Attractor state {binary_state}: probability = {probability}")
            
