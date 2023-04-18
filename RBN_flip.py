@@ -1,9 +1,8 @@
-#basic document
-
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-
+import collections
+  
 class RBN:
     def __init__(self, K, N, flip_probability):
         self.K = K  # Number of inputs per node
@@ -12,6 +11,7 @@ class RBN:
         self.G = nx.DiGraph()
         self.initialization()
         self.generate_logic_tables()
+        self.state_history = []  # To store the history of the states
         
     def initialization(self):
         expected_degrees = [self.K for _ in range(self.N)]
@@ -64,6 +64,8 @@ class RBN:
             # Apply probabilistic flip
             output = self.probabilistic_flip(output)
             new_state.append(output)
+            # Update the state history
+            self.state_history.append(tuple(map(int, new_state)))
 
         # Update node states with new_state
         for i, state in enumerate(new_state):
@@ -76,11 +78,55 @@ class RBN:
         nx.draw(self.G, with_labels=True, node_color=colors, font_weight='bold')
         plt.show()
 
+    def find_cycle_start(self, state_history, given_states):
+        for i, state in enumerate(state_history):
+            if state == given_states:
+                cycle_start = i
+                break
+        else:
+            return None
+    
+        cycle = []
+        for state in state_history[cycle_start:]:
+            if state in cycle:
+                break
+            cycle.append(state)
+    
+        return cycle_start + len(cycle)
+    
+    def conditional_pmf(self, given_states):
+        # Convert given_states to a tuple of integers
+        given_states = tuple(map(int, given_states))
+    
+        # Find the index where the network starts to jump between attractor states
+        cycle_start = self.find_cycle_start(self.state_history, given_states)
+    
+        if cycle_start is None:
+            return {}  # If the given_states do not appear in the state_history, return an empty dictionary
+    
+        # Extract the attractor states from the state_history, starting from the cycle_start index
+        attractor_states = self.state_history[cycle_start:]
+    
+        # Count the occurrences of each state in the attractor_states
+        state_counts = collections.Counter(attractor_states)
+    
+        # Calculate the total number of occurrences
+        total_occurrences = sum(state_counts.values())
+    
+        # Calculate the probability mass function by dividing the count of each state by the total number of occurrences
+        pmf = {state: count / total_occurrences for state, count in state_counts.items()}
+    
+        return pmf
+    
+
 # Create an instance of the RBN class with 5 inputs per node, 40 nodes, and flip probability of 0.4
-network = RBN(4, 10, 0.4)
+network = RBN(3, 5, 0.4)
 # Execute 10 steps and display the network states
-for i in range(10):
+for i in range(30):
     print([network.G.nodes[i]["state"] for i in range(network.N)])
     network.step()
     network.plot_states()
            
+initial_state = [network.G.nodes[i]["state"] for i in range(network.N)]
+pmf = network.conditional_pmf(initial_state)
+print("Probability mass function for attractor states given the initial state:", pmf)
