@@ -1,8 +1,10 @@
-#basic document
-
+#This doc outputs a pmf using a transition matrix. How do we actually do this?
+# first the normal model: 
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
+import numpy as np
+from scipy.sparse import coo_matrix
 
 class RBN:
     def __init__(self, K, N, flip_probability):
@@ -75,9 +77,67 @@ class RBN:
         colors = [color_map[self.G.nodes[node]["state"]] for node in self.G.nodes()]
         nx.draw(self.G, with_labels=True, node_color=colors, font_weight='bold')
         plt.show()
+        
+    def _generate_transitions(self):
+        for current_state in range(2 ** self.N):
+            for updated_node in range(self.N):
+                for updated_state in [0, 1]:
+                    inputs = self.G.nodes[updated_node]["inputs"]
+                    input_vals = [(current_state >> i) & 1 for i in inputs]
+                    index = self.bin_to_dec(input_vals)
+                    output = self.G.nodes[updated_node]["truth_table"][index]
+                    if output == updated_state:
+                        next_state = current_state ^ ((current_state >> updated_node) & 1 ^ updated_state) << updated_node
+                        probability = (1 - self.flip_probability) if output else self.flip_probability
+                        yield current_state, next_state, probability
+    
+    def create_initial_vector_and_sparse_matrix(self):
+        # Step 1: Create initial probability vector
+        num_states = 2 ** self.N
+        init_prob_vector = np.full(num_states, 1 / num_states)
+        
+        # Step 2: Create sparse matrix in COO format
+        row = []
+        col = []
+        data = []
+        #and now? add values to the matrix? 
+        for i in range(num_states):
+           for j in range(self.N):
+               new_state = i ^ (1 << j)
+               row.append(i)
+               col.append(new_state)
+               data.append(1 / self.N)
+              
+        transition_matrix = coo_matrix((data, (row, col)), shape=(num_states, num_states))
+
+        return init_prob_vector, transition_matrix
+    
+    def find_stationary_distribution(self, transition_matrix, initial_vector, num_iterations=100):
+        # Create a copy of the initial probability vector to avoid modifying the original vector
+        current_vector = initial_vector.copy()
+    
+        # Perform the power iteration method for the given number of iterations
+        for _ in range(num_iterations):
+            # Multiply the current vector by the transition matrix
+            current_vector = transition_matrix.dot(current_vector)
+    
+        # Normalize the resulting vector to ensure it is a probability distribution
+        stationary_distribution = current_vector / np.sum(current_vector)
+    
+        # Return the stationary distribution
+        return stationary_distribution
+                
+            
 
 # Create an instance of the RBN class with 5 inputs per node, 40 nodes, and flip probability of 0.4
 network = RBN(4, 10, 0.4)
+
+# Call the function to create the initial probability vector and sparse matrix
+initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
+
+# Call the new function to find the stationary distribution (pmf)
+pmf = network.find_stationary_distribution(sparse_matrix, initial_vector)
+print("Probability mass function (pmf):", pmf)
 # Execute 10 steps and display the network states
 for i in range(10):
     print([network.G.nodes[i]["state"] for i in range(network.N)])
