@@ -1,4 +1,4 @@
-#This doc outputs a pmf using a transition matrix. How do we actually do this?
+#Markov
 # first the normal model: 
 import networkx as nx
 import matplotlib.pyplot as plt
