@@ -148,4 +148,4 @@ for state in attractor_states:
     binary_state = format(state, '010b')  # Convert state to binary string with 10 digits
     probability = pmf[state]
     print(f"Attractor state {binary_state}: probability = {probability}")
-           
+print("test")    
