@@ -131,3 +131,4 @@ for i in range(30):
 initial_state = [network.G.nodes[i]["state"] for i in range(network.N)]
 pmf = network.conditional_pmf(initial_state)
 print("Probability mass function for attractor states given the initial state:", pmf)
+#
