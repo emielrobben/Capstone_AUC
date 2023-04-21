@@ -100,14 +100,13 @@ class RBN:
         row = []
         col = []
         data = []
-        #and now? add values to the matrix? 
-        for i in range(num_states):
-           for j in range(self.N):
-               new_state = i ^ (1 << j)
-               row.append(i)
-               col.append(new_state)
-               data.append(1 / self.N)
-              
+        # Use the _generate_transitions method to create the matrix
+        for current_state, next_state, probability in self._generate_transitions():
+            row.append(current_state)
+            col.append(next_state)
+            data.append(probability)
+
+        # Create the sparse matrix using the COO format
         transition_matrix = coo_matrix((data, (row, col)), shape=(num_states, num_states))
 
         return init_prob_vector, transition_matrix
@@ -130,22 +129,24 @@ class RBN:
             
 
 # Create an instance of the RBN class with 5 inputs per node, 40 nodes, and flip probability of 0.4
-network = RBN(4, 10, 0.4)
+k_av= 4
+N = 5
+flip_prob = 0.0
+network = RBN(k_av, N, flip_prob)
 
 # Call the function to create the initial probability vector and sparse matrix
 initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
 
 # Call the new function to find the stationary distribution (pmf)
 pmf = network.find_stationary_distribution(sparse_matrix, initial_vector)
-           
+
 attractor_states = []
-for state in range(2**10):
+for state in range(2 ** N):
     if pmf[state] > 0:
         attractor_states.append(state)
 
 # Print the probability of each attractor state
 for state in attractor_states:
-    binary_state = format(state, '010b')  # Convert state to binary string with 10 digits
+    binary_state = format(state, f'0{N}b')  # Convert state to binary string with N digits
     probability = pmf[state]
     print(f"Attractor state {binary_state}: probability = {probability}")
-print("test 3")
