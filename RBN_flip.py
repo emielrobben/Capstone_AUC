@@ -121,12 +121,11 @@ class RBN:
 
 
 # Create an instance of the RBN class with 5 inputs per node, 40 nodes, and flip probability of 0.4
-network = RBN(3, 5, 0)
+network = RBN(4, 100, 0)
 # Execute 10 steps and display the network states
-for i in range(30):
+for i in range(100):
     print([network.G.nodes[i]["state"] for i in range(network.N)])
     network.step()
-    network.plot_states()
 
 initial_state = [network.G.nodes[i]["state"] for i in range(network.N)]
 pmf = network.conditional_pmf(initial_state)
