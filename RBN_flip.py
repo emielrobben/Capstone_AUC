@@ -150,3 +150,5 @@ for state in attractor_states:
     binary_state = format(state, f'0{N}b')  # Convert state to binary string with N digits
     probability = pmf[state]
     print(f"Attractor state {binary_state}: probability = {probability}")
+
+    #
