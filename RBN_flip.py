@@ -125,12 +125,10 @@ class RBN:
     
         # Return the stationary distribution
         return stationary_distribution
-                
-            
 
 # Create an instance of the RBN class with 5 inputs per node, 40 nodes, and flip probability of 0.4
 k_av= 4
-N = 5
+N = 20
 flip_prob = 0.0
 network = RBN(k_av, N, flip_prob)
 
@@ -142,7 +140,7 @@ pmf = network.find_stationary_distribution(sparse_matrix, initial_vector)
 
 attractor_states = []
 for state in range(2 ** N):
-    if pmf[state] > 0:
+    if pmf[state] > 0.001:
         attractor_states.append(state)
 
 # Print the probability of each attractor state
