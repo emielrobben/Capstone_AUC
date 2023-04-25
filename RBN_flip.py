@@ -41,11 +41,6 @@ class RBN:
                 dec = dec + 2 ** (len(bin_list) - 1 - i)
         return dec
 
-    def probabilistic_flip(self, value):
-        # Flip the value with the given probability
-        if random.random() < self.flip_probability:
-            return not value
-        return value
 
     def step(self, show_plot=False):
         new_state = []
@@ -60,7 +55,7 @@ class RBN:
             # Get the output from the truth table
             output = truth_table[index]
             # Apply probabilistic flip
-            output = self.probabilistic_flip(output)
+
             new_state.append(output)
 
         # Update node states with new_state
@@ -85,6 +80,7 @@ class RBN:
                     if output == updated_state:
                         next_state = current_state ^ (
                                     (current_state >> updated_node) & 1 ^ updated_state) << updated_node
+                        ##question: what is this doing exactly?
                         probability = (1 - self.flip_probability) if output else self.flip_probability
                         yield current_state, next_state, probability
 
