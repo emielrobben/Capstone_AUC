@@ -54,8 +54,6 @@ class RBN:
             index = self.bin_to_dec(input_vals)
             # Get the output from the truth table
             output = truth_table[index]
-            # Apply probabilistic flip
-
             new_state.append(output)
 
         # Update node states with new_state
@@ -80,7 +78,6 @@ class RBN:
                     if output == updated_state:
                         next_state = current_state ^ (
                                     (current_state >> updated_node) & 1 ^ updated_state) << updated_node
-                        ##question: what is this doing exactly?
                         probability = (1 - self.flip_probability) if output else self.flip_probability
                         yield current_state, next_state, probability
 
@@ -123,7 +120,7 @@ class RBN:
 # Create an instance of the RBN class with 5 inputs per node, 40 nodes, and flip probability of 0.4
 k_av = 4
 N = 20
-flip_prob = 0.0
+flip_prob = 0.4
 network = RBN(k_av, N, flip_prob)
 
 # Call the function to create the initial probability vector and sparse matrix
@@ -143,4 +140,3 @@ for state in attractor_states:
     probability = pmf[state]
     print(f"Attractor state {binary_state}: probability = {probability}")
 
-    #
