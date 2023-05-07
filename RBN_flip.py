@@ -1,4 +1,6 @@
 
+
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -15,7 +17,7 @@ class RBN:
         self.r = r  # Flip probability
         self.G = nx.DiGraph()
         self.initialization()
-        self.generate_logic_tables()
+        self.generate_logic_tables(self.r)
 
     def initialization(self):
         expected_degrees = [self.K for _ in range(self.N)]
@@ -28,11 +30,10 @@ class RBN:
         for i in range(self.N):
             self.G.nodes[i]["state"] = random.choice([True, False])
 
-    def generate_logic_tables(self):
+    def generate_logic_tables(self, r):
         for i in self.G.nodes:
             inputs = list(self.G.predecessors(i))
-            truth_table = [random.choices([True, False], weights=[self.r, 1 - self.r])[0] for _ in
-                           range(2 ** len(inputs))]
+            truth_table = [random.choices([True, False], weights=[r, 1 - r])[0] for _ in range(2 ** len(inputs))]
             self.G.nodes[i]["inputs"] = inputs
             self.G.nodes[i]["truth_table"] = truth_table
 
@@ -150,70 +151,84 @@ class RBN:
     # important to run enough times
     # plotting? Is the easy part, already implemented
 
-    def filter_pmf_and_compare(self, pmf, threshold, pmf_prev, n):
-        filtered_pmf = []
-        result = []
+    def filter_pmf_and_compare(self, pmf, pmf_prev, threshold, num_states):
+        filtered_pmf = np.zeros(num_states)
+        result = np.zeros(num_states)
 
-        for idx, value in enumerate(pmf):
-            if value > threshold:
-                state = self.dec_to_bin(idx)
-                filtered_pmf.append((state, value))
+        for i in range(num_states):
+            log_pmf = 0 if pmf[i] == 0 else math.log(pmf[i])
+            log_pmf_prev = 0 if pmf_prev[i] == 0 else math.log(pmf_prev[i])
+            log_diff = abs(log_pmf - log_pmf_prev)
 
-        for item in filtered_pmf:
-            state, prob = item
-            state_dec = self.bin_to_dec(state)
-
-            if state_dec in [x[0] for x in pmf_prev]:
-                prev_prob = [x[1] for x in pmf_prev if x[0] == state_dec][0]
-                abs_diff = abs(math.log(prob) - math.log(prev_prob))
-                result.append((state, abs_diff))
-            else:
-                result.append((state, math.log(prob)))
+            if log_diff >= threshold:
+                filtered_pmf[i] = pmf[i]
+                result[i] = log_diff
 
         return result, filtered_pmf
 
-    def Fisher(self, d_r, r, k, N):
-        average_p = 0
+    def Compute_Fisher(self, d_r, num_T):
+        """
+
+
+        Parameters
+        ----------
+        d_r : float
+            the increments of r
+        r : float
+            the flip probability
+        k : TYPE
+            DESCRIPTION.
+        N : integer
+            number of nodes in th network
+
+        Returns
+        -------
+        F_array : array with the values for different r for F.
+
+        """
+        N = self.N
+        num_states = 2 ** N
+        F = 0
+        pmf_stack = np.empty((num_states, 0))
+        # pmf_array = np.empty((int(1/d_r) + 1, num_states))
+        F_array = np.zeros(int(1 / d_r) + 1)
+        last_pmf = np.zeros(num_states)
+        F_array[0] = 0
+        threshold = 0.001
         # at the beginning, you initialize the network. After this you will never initialize the network again: you will only make small changes to it.
-        network = self.RBN(k, N, r)
-        for r in np.arange(0, 1 + d_r, d_r, iterations_for_average):
-            # we want an average: so modify the logic tables in a different way.all compare it to the last one (which is only one array).
-            # To go to the next d_r, take which state?
-            # or do we take one network, and do we shift the activity from 0 to 1?
-            # changing the logic tables of the network:
-            self.modify_logic_tables(d_r)
-            # the Fisher array is the Fisher values for all values of r
-            F_array = [0] * (np.arange(0, 1 + d_r, d_r, iterations_for_average))
+        for r in np.arange(0, 1 + d_r, d_r):
+            t = 0
 
-            for i in range(iterations_for_average):
-                last_pmf = pmf
-                old_average_p = average_p
-                initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
-                # Call the function to find the stationary distribution (pmf) using power iteration
-                pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-                # a problem: with calling RBN I would get into an infinite loop?
-                # for calculating every r, I want to have the connections already unitialized, but the logic tables changed?
-                # or I can make it a bit easier: just reinitialize it every time: the activity should be higher for a general r anyways.
+            # for a number of times, a transition matrix is created and pmf calculated.
+            # how to determine if I need to do more rounds? Lets just say I will keep it static now.
 
-                # for loop: we have the pmf now, we need to identify the differences with the previous pmf
-                # we look at the difference per state, and sum them
-                # first we go through the pmf, and identify the attractors
-                F = 0
-                result, filtered_pmf = self.filter_pmf_and_compare(pmf, threshold=0.001, pmf_prev, n=2 ** N)
-                for i in range(len(result)):
-                    _, result_value = result[i]
-                    _, filtered_pmf_value = filtered_pmf[i]
+            for i in range(num_T):
+                self.generate_logic_tables(r)
+                initial_vector, sparse_matrix = self.create_initial_vector_and_sparse_matrix()
+                pmf = self.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+                # add the previous pmf tp the last one (vector addition)
+                combined_pmf = pmf + last_pmf
+            average_pmf = combined_pmf / num_T
+            # for every r, there should be stored an array.
+            pmf_stack = np.column_stack((pmf_stack, average_pmf))
+            # now, for every column in the pmf_stack, it will be compared to the previous one
+        num_columns = pmf_stack.shape[1]
+        for column_index in range(1, num_columns):
+            column_1 = pmf_stack[:, column_index]
+            column_0 = pmf_stack[:, column_index - 1]
+            # crucial step: we first had an array with 2 indices. Now we extract one specific column from it.
+            result, filtered_pmf = self.filter_pmf_and_compare(column_1, column_0, threshold, num_states)
 
-                    F += (filtered_pmf_value * ((result_value / d_r) ** 2))
-                    F_array[x] = F
+            for j in range(len(result)):
+                result_value = result[j]
+                filtered_pmf_value = filtered_pmf[j]
 
-                # Now, the only thing we have to do, is to do this for many, and then average. then, it should be put in the master array
+                F += (filtered_pmf_value * ((result_value / d_r) ** 2))
+            F_array[t + 1] = F
+            F = 0
+            t = t + 1
 
-                # now we have done that, we can calculate the Fisher information of that particular state.
-
-                # lets sum the value of a specific state for multiple runs and then average.
-                # where do we average? we can average, given an initialized network, and see the average of the change.
-                # if we initialize the network over and over again, the changes might still work.
+            # then for the fisher calculations,
 
         return F_array
 
@@ -222,32 +237,11 @@ class RBN:
 N = 10
 network = RBN(4, N, 0.6)
 
-# Call the function to create the initial probability vector and sparse matrix
-initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
-
-# Call the function to find the stationary distribution (pmf) using power iteration
-pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-# pmf_eig=(network.find_steady_state_eig(sparse_matrix)/(2**N))
-p_sum = 0
-for i in range(2 ** N):
-    if pmf[i] > 0.0001:
-        p_sum = p_sum + pmf[i]
-        print("p(", network.bin_to_bin_str(network.dec_to_bin(i)), ") :", pmf[i])
-print("Probability sum:", p_sum)
-# print("Probability mass function (pmf):", pmf)
-
-# in case I want to compare my first method with my eigenvalue method:
-
-# for i in range(2**N):
-#    if (pmf_eig[i])> 0.000001:
-#        p_sum= p_sum + pmf_eig[i]
-#        print("p(",network.bin_to_bin_str(network.dec_to_bin(i)),") :" ,pmf_eig[i])
-# print("Probability sum:", p_sum)
-Fish = network.Fisher(0.05)
-x_values = np.linspace(0, 1, len(Fisher))
-
+F_array = network.Compute_Fisher(0.1, 30)
+x_values = np.linspace(0, 1, len(F_array))
+# how does this work again: can we just call the outout of the
 # Plot F_array against the equally spaced values
-plt.plot(x_values, Fisher, marker='o', linestyle='-')
+plt.plot(x_values, F_array, marker='o', linestyle='-')
 plt.xlabel('x values')
 plt.ylabel('F_array values')
 plt.title('F_array values plotted on equal distance between 0 and 1')
