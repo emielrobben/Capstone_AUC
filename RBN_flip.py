@@ -89,20 +89,17 @@ class RBN:
         num_states = 2 ** (self.N)
         initial_vector = np.ones(num_states) / num_states
 
-        row_indices = np.array([], dtype=int)
-        col_indices = np.array([], dtype=int)
-        data = np.array([])
-        transition_matrix = coo_matrix((data, (row_indices, col_indices)), shape=(num_states, num_states))
+        row_indices = np.zeros(num_states, dtype=int)
+        col_indices = np.zeros(num_states, dtype=int)
 
         # for the first state: I initialize my network in that state
         # (I need a dec to bin for that, given the number of nodes I have, and then make a step.
         # I record where I am then using dec to bin. Lets experiment with n=5.
 
         # just try it once. state ito F,T
-
+        after_step = np.zeros(self.N)
         for k in range(num_states):
             Network_state = self.dec_to_bin(k)
-            after_step = [False] * self.N
             # now manipulating the nodes. The network is already initialized
             for i in range(self.N):
                 self.G.nodes[i]["state"] = Network_state[i]
@@ -115,12 +112,13 @@ class RBN:
             # order row/column: https://brilliant.org/wiki/markov-chains/#markov-chain
             # the row indice is the before step, which is simply the index of the initial vector. although it feels weird
             # I changed it now and it works now.
-            row_indices = np.append(row_indices, self.bin_to_dec(after_step))
-            col_indices = np.append(col_indices, k)
+            row_indices[k] = self.bin_to_dec(after_step)
+            col_indices[k] = k
             # print("bin to dec",k, self.bin_to_dec(after_step) )
-            data = np.append(data, 1)
+
             # there is only one data point per column/row. so after this we can go to the next one. but it does that automatically.
             # Create a transition matrix after all steps
+        data = np.ones(num_states)
         transition_matrix = coo_matrix((data, (row_indices, col_indices)), shape=(num_states, num_states))
         # print(transition_matrix)
         # I do this for all states. I need to be careful:
@@ -237,7 +235,7 @@ class RBN:
 N = 10
 network = RBN(4, N, 0.6)
 
-F_array = network.Compute_Fisher(0.1, 30)
+F_array = network.Compute_Fisher(0.1, 10)
 x_values = np.linspace(0, 1, len(F_array))
 # how does this work again: can we just call the outout of the
 # Plot F_array against the equally spaced values
