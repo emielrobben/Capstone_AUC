@@ -10,8 +10,7 @@ from scipy import linalg
 import math
 
 
-class Environment(self, length, alpha)
-
+class Environment:
     def __init__(self, length, alpha):
         self.length = length
         self.alpha = alpha
@@ -22,13 +21,14 @@ class Environment(self, length, alpha)
 
 
 class RBN:
-    def __init__(self, K, N, r):
+    def __init__(self, K, N, r, environment):
         self.K = K  # Number of inputs per node
         self.N = N  # Number of nodes in the network
         self.r = r  # Flip probability
         self.G = nx.DiGraph()
         self.initialization()
         self.generate_logic_tables(self.r)
+        self.environment = environment
 
     def initialization(self):
         expected_degrees = [self.K for _ in range(self.N)]
