@@ -10,6 +10,17 @@ from scipy import linalg
 import math
 
 
+class Environment(self, length, alpha)
+
+    def __init__(self, length, alpha):
+        self.length = length
+        self.alpha = alpha
+    def generate_string(self):
+        p = self.alpha
+        environment_string = [np.random.choice([0,1], p=[1-p,p])for _ in range(self.length)]
+        return environment_string
+
+
 class RBN:
     def __init__(self, K, N, r):
         self.K = K  # Number of inputs per node
@@ -224,6 +235,9 @@ class RBN:
                 F += (filtered_pmf_value * ((result_value / d_r) ** 2))
             F_array[t + 1] = F
             F = 0
+            if t + 1 == num_columns:
+                F_array[t + 1] = 0
+
             t = t + 1
 
             # then for the fisher calculations,
@@ -233,7 +247,8 @@ class RBN:
 
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
 N = 10
-network = RBN(4, N, 0.6)
+environment = Environment(10, 0.3)
+network = RBN(4, N, 0.6, environment)
 
 F_array = network.Compute_Fisher(0.1, 10)
 x_values = np.linspace(0, 1, len(F_array))
