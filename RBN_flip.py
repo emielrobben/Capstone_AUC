@@ -8,7 +8,9 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from scipy import linalg
 import math
-
+import cProfile
+import re
+cProfile.run('')
 
 class RBN:
     def __init__(self, K, N, r):
@@ -192,12 +194,13 @@ class RBN:
         F_array = np.zeros(int(1 / d_r) + 1)
         last_pmf = np.zeros(num_states)
         F_array[0] = 0
-
+        pmf_stack = np.zeros((int(1/d_r)+1, num_states))
         # at the beginning, you initialize the network. After this you will never initialize the network again: you will only make small changes to it.
         for r in np.arange(0, 1 + d_r, d_r):
             # for a number of times, a transition matrix is created and pmf calculated.
             # how to determine if I need to do more rounds? Lets just say I will keep it static now.
             combined_pmf = np.zeros(num_states)
+
             for i in range(num_T):
                 self.generate_logic_tables(r)
                 initial_vector, sparse_matrix = self.create_initial_vector_and_sparse_matrix()
@@ -206,9 +209,10 @@ class RBN:
                 combined_pmf = pmf + last_pmf
             average_pmf = combined_pmf / num_T
             # for every r, there should be stored an array.
-            pmf_stack = np.column_stack((pmf_stack, average_pmf))
+            pmf_stack[r, :] = average_pmf
             # now, for every column in the pmf_stack, it will be compared to the previous one
         num_columns = pmf_stack.shape[1]
+        assert num_columns == int(1/d_r)+1, f'{num_columns=}'
         t = 0
         for column_index in range(1, num_columns):
             column_1 = pmf_stack[:, column_index]
@@ -234,7 +238,7 @@ class RBN:
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
 N = 15
 network = RBN(6, N, 0.6)
-threshold = 0.001
+threshold = 0
 F_array = network.compute_Fisher(0.05, 20, threshold)
 x_values = np.linspace(0, 1, len(F_array))
 # how does this work again: can we just call the out of the
