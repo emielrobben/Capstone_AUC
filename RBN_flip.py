@@ -164,7 +164,7 @@ class RBN:
 
         return result, filtered_pmf
 
-    def Compute_Fisher(self, d_r, num_T):
+    def compute_Fisher(self, d_r, num_T, threshold):
         """
 
 
@@ -192,14 +192,12 @@ class RBN:
         F_array = np.zeros(int(1 / d_r) + 1)
         last_pmf = np.zeros(num_states)
         F_array[0] = 0
-        threshold = 0.001
+
         # at the beginning, you initialize the network. After this you will never initialize the network again: you will only make small changes to it.
         for r in np.arange(0, 1 + d_r, d_r):
-            t = 0
-
             # for a number of times, a transition matrix is created and pmf calculated.
             # how to determine if I need to do more rounds? Lets just say I will keep it static now.
-
+            combined_pmf = np.zeros(num_states)
             for i in range(num_T):
                 self.generate_logic_tables(r)
                 initial_vector, sparse_matrix = self.create_initial_vector_and_sparse_matrix()
@@ -211,6 +209,7 @@ class RBN:
             pmf_stack = np.column_stack((pmf_stack, average_pmf))
             # now, for every column in the pmf_stack, it will be compared to the previous one
         num_columns = pmf_stack.shape[1]
+        t = 0
         for column_index in range(1, num_columns):
             column_1 = pmf_stack[:, column_index]
             column_0 = pmf_stack[:, column_index - 1]
@@ -224,20 +223,21 @@ class RBN:
                 F += (filtered_pmf_value * ((result_value / d_r) ** 2))
             F_array[t + 1] = F
             F = 0
+
             t = t + 1
 
             # then for the fisher calculations,
-
+        F_array[-1] = 0
         return F_array
 
 
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
-N = 10
-network = RBN(4, N, 0.6)
-
-F_array = network.Compute_Fisher(0.1, 10)
+N = 15
+network = RBN(6, N, 0.6)
+threshold = 0.001
+F_array = network.compute_Fisher(0.05, 20, threshold)
 x_values = np.linspace(0, 1, len(F_array))
-# how does this work again: can we just call the outout of the
+# how does this work again: can we just call the out of the
 # Plot F_array against the equally spaced values
 plt.plot(x_values, F_array, marker='o', linestyle='-')
 plt.xlabel('x values')
