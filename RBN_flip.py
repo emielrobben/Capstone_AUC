@@ -10,7 +10,6 @@ from scipy import linalg
 import math
 import cProfile
 import re
-cProfile.run('')
 
 class RBN:
     def __init__(self, K, N, r):
@@ -151,7 +150,8 @@ class RBN:
     # important to run enough times
     # plotting? Is the easy part, already implemented
 
-    def filter_pmf_and_compare(self, pmf, pmf_prev, threshold, num_states):
+    def filter_pmf_and_compare(self, pmf, pmf_prev, threshold):
+        num_states = len(pmf)
         filtered_pmf = np.zeros(num_states)
         result = np.zeros(num_states)
 
@@ -167,25 +167,7 @@ class RBN:
         return result, filtered_pmf
 
     def compute_Fisher(self, d_r, num_T, threshold):
-        """
 
-
-        Parameters
-        ----------
-        d_r : float
-            the increments of r
-        r : float
-            the flip probability
-        k : TYPE
-            DESCRIPTION.
-        N : integer
-            number of nodes in th network
-
-        Returns
-        -------
-        F_array : array with the values for different r for F.
-
-        """
         N = self.N
         num_states = 2 ** N
         F = 0
@@ -195,6 +177,7 @@ class RBN:
         last_pmf = np.zeros(num_states)
         F_array[0] = 0
         pmf_stack = np.zeros((int(1/d_r)+1, num_states))
+        r_count = 0
         # at the beginning, you initialize the network. After this you will never initialize the network again: you will only make small changes to it.
         for r in np.arange(0, 1 + d_r, d_r):
             # for a number of times, a transition matrix is created and pmf calculated.
@@ -207,18 +190,20 @@ class RBN:
                 pmf = self.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
                 # add the previous pmf tp the last one (vector addition)
                 combined_pmf = pmf + last_pmf
+                last_pmf = pmf
             average_pmf = combined_pmf / num_T
             # for every r, there should be stored an array.
-            pmf_stack[r, :] = average_pmf
+            pmf_stack[r_count, :] = average_pmf
             # now, for every column in the pmf_stack, it will be compared to the previous one
-        num_columns = pmf_stack.shape[1]
+            r_count += 1
+        num_columns = pmf_stack.shape[0]
         assert num_columns == int(1/d_r)+1, f'{num_columns=}'
         t = 0
         for column_index in range(1, num_columns):
             column_1 = pmf_stack[:, column_index]
             column_0 = pmf_stack[:, column_index - 1]
             # crucial step: we first had an array with 2 indices. Now we extract one specific column from it.
-            result, filtered_pmf = self.filter_pmf_and_compare(column_1, column_0, threshold, num_states)
+            result, filtered_pmf = self.filter_pmf_and_compare(column_1, column_0, threshold)
 
             for j in range(len(result)):
                 result_value = result[j]
@@ -236,16 +221,33 @@ class RBN:
 
 
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
-N = 15
-network = RBN(6, N, 0.6)
+K=6
+N=10
+r=0.6
 threshold = 0
-F_array = network.compute_Fisher(0.05, 20, threshold)
+d_r= 0.05
+num_T = 20
+network = RBN(K, N, r)
+F_array = network.compute_Fisher(d_r, num_T, threshold)
 x_values = np.linspace(0, 1, len(F_array))
 # how does this work again: can we just call the out of the
 # Plot F_array against the equally spaced values
 plt.plot(x_values, F_array, marker='o', linestyle='-')
 plt.xlabel('x values')
 plt.ylabel('F_array values')
-plt.title('F_array values plotted on equal distance between 0 and 1')
+plt.title('Values of Fisher information plotted between 0 and 1')
 plt.grid(True)
 plt.show()
+
+"""
+if __name__ == "__main__":
+    rbn_instance = RBN(K, N, r)
+    print("Runtime Fisher")
+    cProfile.run('rbn_instance.compute_Fisher(d_r, num_T, threshold)')
+"""
+
+
+
+
+
+
