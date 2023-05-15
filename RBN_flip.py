@@ -173,10 +173,10 @@ class RBN:
         F = 0
         pmf_stack = np.empty((num_states, 0))
         # pmf_array = np.empty((int(1/d_r) + 1, num_states))
-        F_array = np.zeros(int(1 / d_r) + 1)
+        F_array = np.zeros(len(np.arange(0, 1 + d_r, d_r)))
         last_pmf = np.zeros(num_states)
         F_array[0] = 0
-        pmf_stack = np.zeros((int(1/d_r)+1, num_states))
+        pmf_stack = np.zeros((len(np.arange(0, 1 + d_r, d_r)), num_states))
         r_count = 0
         # at the beginning, you initialize the network. After this you will never initialize the network again: you will only make small changes to it.
         for r in np.arange(0, 1 + d_r, d_r):
@@ -225,8 +225,8 @@ K=6
 N=10
 r=0.6
 threshold = 0
-d_r= 0.05
-num_T = 20
+d_r= 0.001
+num_T = 30
 network = RBN(K, N, r)
 F_array = network.compute_Fisher(d_r, num_T, threshold)
 x_values = np.linspace(0, 1, len(F_array))
@@ -239,12 +239,13 @@ plt.title('Values of Fisher information plotted between 0 and 1')
 plt.grid(True)
 plt.show()
 
-"""
+""" 
 if __name__ == "__main__":
     rbn_instance = RBN(K, N, r)
     print("Runtime Fisher")
     cProfile.run('rbn_instance.compute_Fisher(d_r, num_T, threshold)')
 """
+
 
 
 
