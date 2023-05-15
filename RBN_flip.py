@@ -34,7 +34,7 @@ class RBN:
     def generate_logic_tables(self, r):
         for i in self.G.nodes:
             inputs = list(self.G.predecessors(i))
-            truth_table = [random.choices([True, False], weights=[r, 1 - r])[0] for _ in range(2 ** len(inputs))]
+            truth_table = [random.random() < r for _ in range(2 ** len(inputs))]
             self.G.nodes[i]["inputs"] = inputs
             self.G.nodes[i]["truth_table"] = truth_table
 
@@ -48,11 +48,7 @@ class RBN:
             self.G.nodes[i]["truth_table"] = truth_table
 
     def bin_to_dec(self, bin_list):
-        dec = 0
-        for i in range(len(bin_list)):
-            if bin_list[i]:
-                dec = dec + 2 ** (len(bin_list) - 1 - i)
-        return dec
+        return np.dot(bin_list, 2 ** np.arange(len(bin_list))[::-1])
 
     def dec_to_bin(self, dec):
         bin_list = [False] * self.N
@@ -129,14 +125,11 @@ class RBN:
 
     def find_stationary_distribution(self, initial_vector, transition_matrix, tolerance, num_iterations=100):
         probability_vector = initial_vector
-        # now just iterating many times. Let's first just create something that works:
 
         for i in range(num_iterations):
-            # Multiply the current vector by the transition matrix
             probability_vector_i = transition_matrix * probability_vector
-            if np.linalg.norm(probability_vector_i - probability_vector) < tolerance:
+            if np.allclose(probability_vector_i, probability_vector, atol=tolerance):
                 probability_vector = probability_vector_i
-
                 return probability_vector
 
             probability_vector = probability_vector_i
@@ -152,17 +145,12 @@ class RBN:
 
     def filter_pmf_and_compare(self, pmf, pmf_prev, threshold):
         num_states = len(pmf)
-        filtered_pmf = np.zeros(num_states)
-        result = np.zeros(num_states)
+        log_pmf = np.where(pmf == 0, 0, np.log(pmf))
+        log_pmf_prev = np.where(pmf_prev == 0, 0, np.log(pmf_prev))
+        log_diff = np.abs(log_pmf - log_pmf_prev)
 
-        for i in range(num_states):
-            log_pmf = 0 if pmf[i] == 0 else math.log(pmf[i])
-            log_pmf_prev = 0 if pmf_prev[i] == 0 else math.log(pmf_prev[i])
-            log_diff = abs(log_pmf - log_pmf_prev)
-
-            if log_diff >= threshold:
-                filtered_pmf[i] = pmf[i]
-                result[i] = log_diff
+        filtered_pmf = np.where(log_diff >= threshold, pmf, 0)
+        result = np.where(log_diff >= threshold, log_diff, 0)
 
         return result, filtered_pmf
 
@@ -176,7 +164,7 @@ class RBN:
         F_array = np.zeros(len(np.arange(0, 1 + d_r, d_r)))
         last_pmf = np.zeros(num_states)
         F_array[0] = 0
-        pmf_stack = np.zeros((len(np.arange(0, 1 + d_r, d_r)), num_states))
+        pmf_stack = np.zeros((num_states, len(np.arange(0, 1 + d_r, d_r))))
         r_count = 0
         # at the beginning, you initialize the network. After this you will never initialize the network again: you will only make small changes to it.
         for r in np.arange(0, 1 + d_r, d_r):
@@ -193,10 +181,10 @@ class RBN:
                 last_pmf = pmf
             average_pmf = combined_pmf / num_T
             # for every r, there should be stored an array.
-            pmf_stack[r_count, :] = average_pmf
+            pmf_stack[:, r_count] = average_pmf
             # now, for every column in the pmf_stack, it will be compared to the previous one
             r_count += 1
-        num_columns = pmf_stack.shape[0]
+        num_columns = pmf_stack.shape[1]
         assert num_columns == int(1/d_r)+1, f'{num_columns=}'
         t = 0
         for column_index in range(1, num_columns):
@@ -222,11 +210,11 @@ class RBN:
 
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
 K=6
-N=10
+N=5
 r=0.6
 threshold = 0
-d_r= 0.001
-num_T = 30
+d_r= 0.05
+num_T = 20
 network = RBN(K, N, r)
 F_array = network.compute_Fisher(d_r, num_T, threshold)
 x_values = np.linspace(0, 1, len(F_array))
@@ -239,12 +227,12 @@ plt.title('Values of Fisher information plotted between 0 and 1')
 plt.grid(True)
 plt.show()
 
-""" 
+
 if __name__ == "__main__":
     rbn_instance = RBN(K, N, r)
     print("Runtime Fisher")
     cProfile.run('rbn_instance.compute_Fisher(d_r, num_T, threshold)')
-"""
+
 
 
 
