@@ -210,10 +210,10 @@ class RBN:
 
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
 K=6
-N=5
+N=10
 r=0.6
 threshold = 0
-d_r= 0.05
+d_r= 0.01
 num_T = 20
 network = RBN(K, N, r)
 F_array = network.compute_Fisher(d_r, num_T, threshold)
@@ -227,11 +227,11 @@ plt.title('Values of Fisher information plotted between 0 and 1')
 plt.grid(True)
 plt.show()
 
-
 if __name__ == "__main__":
-    rbn_instance = RBN(K, N, r)
     print("Runtime Fisher")
-    cProfile.run('rbn_instance.compute_Fisher(d_r, num_T, threshold)')
+    cProfile.run('network.compute_Fisher(d_r, num_T, threshold)')
+
+
 
 
 
