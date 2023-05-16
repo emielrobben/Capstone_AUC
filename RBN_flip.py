@@ -1,6 +1,4 @@
 
-
-
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -10,6 +8,22 @@ from scipy import linalg
 import math
 import cProfile
 import re
+from functools import partial
+import multiprocessing
+from multiprocessing import Pool
+import sys
+
+def compute_average_pmf(args):
+    rbn_instance, r, num_T = args
+    network = rbn_instance
+    combined_pmf = np.zeros(2 ** network.N)
+    for _ in range(num_T):
+        network.generate_logic_tables(r)
+        initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
+        pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        combined_pmf += pmf
+    average_pmf = combined_pmf / num_T
+    return average_pmf
 
 class RBN:
     def __init__(self, K, N, r):
@@ -154,43 +168,24 @@ class RBN:
 
         return result, filtered_pmf
 
-    def compute_Fisher(self, d_r, num_T, threshold):
-
+    def compute_Fisher(self, d_r, num_T, threshold, n_processes=None):
         N = self.N
         num_states = 2 ** N
         F = 0
-        pmf_stack = np.empty((num_states, 0))
-        # pmf_array = np.empty((int(1/d_r) + 1, num_states))
         F_array = np.zeros(len(np.arange(0, 1 + d_r, d_r)))
-        last_pmf = np.zeros(num_states)
-        F_array[0] = 0
-        pmf_stack = np.zeros((num_states, len(np.arange(0, 1 + d_r, d_r))))
-        r_count = 0
-        # at the beginning, you initialize the network. After this you will never initialize the network again: you will only make small changes to it.
-        for r in np.arange(0, 1 + d_r, d_r):
-            # for a number of times, a transition matrix is created and pmf calculated.
-            # how to determine if I need to do more rounds? Lets just say I will keep it static now.
-            combined_pmf = np.zeros(num_states)
+        r_values = np.arange(0, 1 + d_r, d_r)
 
-            for i in range(num_T):
-                self.generate_logic_tables(r)
-                initial_vector, sparse_matrix = self.create_initial_vector_and_sparse_matrix()
-                pmf = self.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-                # add the previous pmf tp the last one (vector addition)
-                combined_pmf = pmf + last_pmf
-                last_pmf = pmf
-            average_pmf = combined_pmf / num_T
-            # for every r, there should be stored an array.
-            pmf_stack[:, r_count] = average_pmf
-            # now, for every column in the pmf_stack, it will be compared to the previous one
-            r_count += 1
+        # Use multiprocessing.Pool to calculate average pmf for each r value
+        with Pool(processes=n_processes) as pool:
+            pmf_stack = np.array(pool.map(compute_average_pmf, [(self, r, num_T) for r in r_values]))
+
+        pmf_stack = pmf_stack.T
         num_columns = pmf_stack.shape[1]
-        assert num_columns == int(1/d_r)+1, f'{num_columns=}'
+        assert num_columns == int(1 / d_r) + 1, f'{num_columns=}'
         t = 0
         for column_index in range(1, num_columns):
             column_1 = pmf_stack[:, column_index]
             column_0 = pmf_stack[:, column_index - 1]
-            # crucial step: we first had an array with 2 indices. Now we extract one specific column from it.
             result, filtered_pmf = self.filter_pmf_and_compare(column_1, column_0, threshold)
 
             for j in range(len(result)):
@@ -203,40 +198,43 @@ class RBN:
 
             t = t + 1
 
-            # then for the fisher calculations,
         F_array[-1] = 0
         return F_array
 
 
-# Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
-K=6
-N=10
-r=0.6
-threshold = 0
-d_r= 0.01
-num_T = 20
-network = RBN(K, N, r)
-F_array = network.compute_Fisher(d_r, num_T, threshold)
-x_values = np.linspace(0, 1, len(F_array))
-# how does this work again: can we just call the out of the
-# Plot F_array against the equally spaced values
-plt.plot(x_values, F_array, marker='o', linestyle='-')
-plt.xlabel('x values')
-plt.ylabel('F_array values')
-plt.title('Values of Fisher information plotted between 0 and 1')
-plt.grid(True)
-plt.show()
+# Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
+def main():
+    # Set parameters for the RBN
+    K = 6
+
+    N = 6
+    r = 0.6
+    threshold = 0
+    d_r = 0.05
+    num_T = 20
+    num_processes = 4
+
+    # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
+    network = RBN(K, N, r)
+
+    # Calculate Fisher information array
+    F_array = network.compute_Fisher(d_r, num_T, threshold, num_processes)
+
+    # Plot F_array against the equally spaced values
+    x_values = np.linspace(0, 1, len(F_array))
+    plt.plot(x_values, F_array, marker='o', linestyle='-')
+    plt.xlabel('x values')
+    plt.ylabel('F_array values')
+    plt.title('Values of Fisher information plotted between 0 and 1')
+    plt.grid(True)
+    plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
+    sys.exit("Stopping the code execution.")
+    plt.show()
+
+    #print("Runtime Fisher")
+    #cProfile.run('network.compute_Fisher(d_r, num_T, threshold, num_processes)')
+
 
 if __name__ == "__main__":
-    print("Runtime Fisher")
-    cProfile.run('network.compute_Fisher(d_r, num_T, threshold)')
-
-
-
-
-
-
-
-
-
+    main()
 
