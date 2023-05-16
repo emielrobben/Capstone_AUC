@@ -207,10 +207,10 @@ def main():
     # Set parameters for the RBN
     K = 6
 
-    N = 6
+    N = 20
     r = 0.6
     threshold = 0
-    d_r = 0.05
+    d_r = 0.025
     num_T = 20
     num_processes = 4
 
