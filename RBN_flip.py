@@ -207,11 +207,11 @@ def main():
     # Set parameters for the RBN
     K = 6
 
-    N = 20
+    N = 8
     r = 0.6
     threshold = 0
-    d_r = 0.025
-    num_T = 20
+    d_r = 0.05
+    num_T = 50
     num_processes = 4
 
     # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
@@ -228,12 +228,56 @@ def main():
     plt.title('Values of Fisher information plotted between 0 and 1')
     plt.grid(True)
     plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
-    sys.exit("Stopping the code execution.")
+    #sys.exit("Stopping the code execution.")
     plt.show()
 
     #print("Runtime Fisher")
     #cProfile.run('network.compute_Fisher(d_r, num_T, threshold, num_processes)')
 
+    #extra part, maybe soon in jupyter notebook
+    #showing that
+    resvec = np.zeros(num_T)
+    combined_pmf = np.zeros(2 ** N)
+    for i in range(num_T):
+        network.generate_logic_tables(r)
+        initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
+        pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        combined_pmf += pmf
+        combined_pmf = combined_pmf/2
+        resvec[i] = np.linalg.norm(combined_pmf - pmf)
+
+
+    iteration = np.linspace(0, num_T - 1, num_T)
+    plt.plot(iteration, resvec, marker='o', linestyle='-')
+    plt.xlabel('Iteration')
+    plt.ylabel('Error')
+    plt.title('Error convergence')
+    plt.grid(True)
+    plt.show()
+
+    # second one: a bar plot
+    args = (network, r, num_T)
+    #categories = ['0.1', '0.1+d_r', '0.5', '0.5+d_r']
+    categories = ['0.1+d_r','0.5+d_r']
+    num_compare = 2
+    values = np.zeros(num_compare)
+    r =0.1
+    average_pmf = compute_average_pmf(args)
+    r= 0.1 + d_r
+    average1_pmf = compute_average_pmf(args)
+    values[0]= np.linalg.norm(average1_pmf - average_pmf)
+    r = 0.5
+    average_pmf = compute_average_pmf(args)
+    r = 0.5 + d_r
+    average1_pmf = compute_average_pmf(args)
+    values[1] = np.linalg.norm(average1_pmf - average_pmf)
+
+    #if I want to know susceptability, I should measure the difference between eg 0.5 and 0.5 +dr. you can use the function for it
+    plt.bar(categories, values, color=['red', 'blue'])
+    plt.xlabel('Values of r')
+    plt.ylabel('Differences')
+    plt.title('The change of pmf per r')
+    plt.show()
 
 if __name__ == "__main__":
     main()
