@@ -203,22 +203,7 @@ class RBN:
         F_array[-1] = 0
         return F_array
 
-
-# Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
-def main():
-    # Set parameters for the RBN
-    K = 6
-
-    N = 8
-    r = 0.6
-    threshold = 0
-    d_r = 0.05
-    num_T = 10
-    num_processes = 4
-
-    # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
-    network = RBN(K, N, r)
-
+def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     # Calculate Fisher information array
     F_array = network.compute_Fisher(d_r, num_T, threshold, num_processes)
 
@@ -229,18 +214,40 @@ def main():
     plt.ylabel('F_array values')
     plt.title('Values of Fisher information plotted between 0 and 1')
     plt.grid(True)
-    plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
-    #sys.exit("Stopping the code execution.")
+    # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
+    # sys.exit("Stopping the code execution.")
+    plt.show()
+def one_barplot(network, r, num_T, d_r):
+    # a bar plot with how much the pmf changes for a certtain r +dr
+    args = (network, r, num_T)
+    # categories = ['0.1', '0.1+d_r', '0.5', '0.5+d_r']
+    categories = ['0.1+d_r', '0.5+d_r']
+    num_compare = 2
+    values = np.zeros(num_compare)
+    r = 0.1
+    average_pmf = compute_average_pmf(args)
+    r = 0.1 + d_r
+    average1_pmf = compute_average_pmf(args)
+    values[0] = np.linalg.norm(average1_pmf - average_pmf)
+    r = 0.5
+    average_pmf = compute_average_pmf(args)
+    r = 0.5 + d_r
+    average1_pmf = compute_average_pmf(args)
+    values[1] = np.linalg.norm(average1_pmf - average_pmf)
+
+    # if I want to know susceptability, I should measure the difference between eg 0.5 and 0.5 +dr. you can use the function for it
+    plt.bar(categories, values, color=['red', 'blue'])
+    plt.xlabel('Values of r')
+    plt.ylabel('Differences')
+    plt.title('The change of pmf per r')
     plt.show()
 
-    #print("Runtime Fisher")
-    #cProfile.run('network.compute_Fisher(d_r, num_T, threshold, num_processes)')
-
-    #extra part, maybe soon in jupyter notebook
-    #showing that
+def convergence(num_T, N, network,r):
+    # extra part, maybe soon in jupyter notebook
+    # showing that
     resvec = np.zeros(num_T)
     combined_pmf = np.zeros(2 ** N)
-    combined_pmf_prev= np.zeros(2 ** N)
+    combined_pmf_prev = np.zeros(2 ** N)
     for i in range(num_T):
         network.generate_logic_tables(r)
         initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
@@ -257,39 +264,15 @@ def main():
     plt.title('Error convergence')
     plt.grid(True)
     plt.show()
-
-    # a bar plot with how much the pmf changes for a certtain r +dr
-    args = (network, r, num_T)
-    #categories = ['0.1', '0.1+d_r', '0.5', '0.5+d_r']
-    categories = ['0.1+d_r','0.5+d_r']
-    num_compare = 2
-    values = np.zeros(num_compare)
-    r =0.1
-    average_pmf = compute_average_pmf(args)
-    r= 0.1 + d_r
-    average1_pmf = compute_average_pmf(args)
-    values[0]= np.linalg.norm(average1_pmf - average_pmf)
-    r = 0.5
-    average_pmf = compute_average_pmf(args)
-    r = 0.5 + d_r
-    average1_pmf = compute_average_pmf(args)
-    values[1] = np.linalg.norm(average1_pmf - average_pmf)
-
-    #if I want to know susceptability, I should measure the difference between eg 0.5 and 0.5 +dr. you can use the function for it
-    plt.bar(categories, values, color=['red', 'blue'])
-    plt.xlabel('Values of r')
-    plt.ylabel('Differences')
-    plt.title('The change of pmf per r')
-    plt.show()
-
-    # the upgraded bar plot with 2**N  times two bars
+def pmf_barplot(network, r, num_T, d_r, ):
+ # the upgraded bar plot with 2**N  times two bars
 
     args = (network, r, num_T)
     r = 0.1
     average_pmf = compute_average_pmf(args)
     r = 0.1 + d_r
     average1_pmf = compute_average_pmf(args)
-    num_states = len(pmf)
+    num_states = len(average_pmf)
     X_axis = np.arange(num_states)
 
     bar_width = 0.4
@@ -311,7 +294,7 @@ def main():
     r = 0.5 + d_r
     average1_pmf = compute_average_pmf(args)
 
-    num_states = len(pmf)
+    num_states = len(average_pmf)
     X_axis = np.arange(num_states)
 
     bar_width = 0.4
@@ -325,7 +308,7 @@ def main():
     plt.legend()
     plt.show()
 
-
+def sorted_pmf_plot(network, r, num_T, d_r):
     # Soring the pmf arrays and making a line pot
 
     args = (network, r, num_T)
@@ -336,7 +319,7 @@ def main():
     average1_pmf = compute_average_pmf(args)
     average1_pmf.sort()
 
-    num_states = len(pmf)
+    num_states = len(average_pmf)
     X_axis = np.arange(num_states)
     plt.plot(X_axis, average_pmf, label='r=0.1', linestyle='-', marker='o')
     plt.plot(X_axis, average1_pmf, label='r=0.1 + d_r', linestyle='-', marker='o')
@@ -350,7 +333,6 @@ def main():
     plt.legend()
     plt.show()
 
-
     # Now for 0.5
 
     args = (network, r, num_T)
@@ -361,7 +343,7 @@ def main():
     average1_pmf = compute_average_pmf(args)
     average1_pmf.sort()
 
-    num_states = len(pmf)
+    num_states = len(average_pmf)
     X_axis = np.arange(num_states)
     plt.plot(X_axis, average_pmf, label='r=0.5', linestyle='-', marker='o')
     plt.plot(X_axis, average1_pmf, label='r=0.5 + d_r', linestyle='-', marker='o')
@@ -375,7 +357,45 @@ def main():
     plt.legend()
     plt.show()
 
+def print_pmf(network, N):
+    # Call the function to create the initial probability vector and sparse matrix
+    initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
 
+    # Call the function to find the stationary distribution (pmf) using power iteration
+    pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+    # pmf_eig=(network.find_steady_state_eig(sparse_matrix)/(2**N))
+    p_sum = 0
+    for i in range(2 ** N):
+        if pmf[i] > 0.0001:
+            p_sum = p_sum + pmf[i]
+            print("p(", network.bin_to_bin_str(network.dec_to_bin(i)), ") :", pmf[i])
+    print("Probability sum:", p_sum)
+
+# Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
+def main():
+    # Set parameters for the RBN
+    K = 6
+
+    N = 8
+    r = 0.6
+    threshold = 0
+    d_r = 0.05
+    num_T = 10
+    num_processes = 4
+
+    # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
+    network = RBN(K, N, r)
+
+    network.plot_states()
+    print_pmf(network, N)
+    Fisher_plot(d_r, num_T, threshold, num_processes, network)
+    one_barplot(network, r, num_T, d_r)
+    convergence(num_T, N, network, r)
+    pmf_barplot(network, r, num_T, d_r)
+    sorted_pmf_plot(network, r, num_T, d_r)
+
+    #print("Runtime Fisher")
+    #cProfile.run('network.compute_Fisher(d_r, num_T, threshold, num_processes)')
 
 if __name__ == "__main__":
     main()
