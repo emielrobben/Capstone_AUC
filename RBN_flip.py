@@ -35,6 +35,8 @@ class RBN:
         self.generate_logic_tables(self.r)
 
     def initialization(self):
+        #Accounting for the fact that the function deletes half of the nodes
+        self.K = 2 * (self.K)
         expected_degrees = [self.K for _ in range(self.N)]
         self.G = nx.expected_degree_graph(expected_degrees, selfloops=False)
         self.G = nx.DiGraph(self.G)
@@ -211,7 +213,7 @@ def main():
     r = 0.6
     threshold = 0
     d_r = 0.05
-    num_T = 50
+    num_T = 10
     num_processes = 4
 
     # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
@@ -238,14 +240,15 @@ def main():
     #showing that
     resvec = np.zeros(num_T)
     combined_pmf = np.zeros(2 ** N)
+    combined_pmf_prev= np.zeros(2 ** N)
     for i in range(num_T):
         network.generate_logic_tables(r)
         initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
         pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
         combined_pmf += pmf
-        combined_pmf = combined_pmf/2
-        resvec[i] = np.linalg.norm(combined_pmf - pmf)
-
+        combined_pmf /= 2
+        resvec[i] = np.linalg.norm(combined_pmf - combined_pmf_prev)
+        combined_pmf_prev = combined_pmf
 
     iteration = np.linspace(0, num_T - 1, num_T)
     plt.plot(iteration, resvec, marker='o', linestyle='-')
@@ -255,7 +258,7 @@ def main():
     plt.grid(True)
     plt.show()
 
-    # second one: a bar plot
+    # a bar plot with how much the pmf changes for a certtain r +dr
     args = (network, r, num_T)
     #categories = ['0.1', '0.1+d_r', '0.5', '0.5+d_r']
     categories = ['0.1+d_r','0.5+d_r']
@@ -278,6 +281,101 @@ def main():
     plt.ylabel('Differences')
     plt.title('The change of pmf per r')
     plt.show()
+
+    # the upgraded bar plot with 2**N  times two bars
+
+    args = (network, r, num_T)
+    r = 0.1
+    average_pmf = compute_average_pmf(args)
+    r = 0.1 + d_r
+    average1_pmf = compute_average_pmf(args)
+    num_states = len(pmf)
+    X_axis = np.arange(num_states)
+
+    bar_width = 0.4
+    plt.bar(X_axis - bar_width / 2, average_pmf, bar_width, label='0.1')
+    plt.bar(X_axis + bar_width / 2, average1_pmf, bar_width, label='0.1 + d_r')
+
+    plt.xticks(X_axis, X_axis)  # Use system states as x-axis labels
+    plt.xlabel('System States (Decimal Value)')
+    plt.ylabel('PMF')
+    plt.title('PMF values for 0.1 and 0.1 + dr')
+    plt.legend()
+    plt.show()
+
+    #The same, but for 0.5
+
+    args = (network, r, num_T)
+    r = 0.5
+    average_pmf = compute_average_pmf(args)
+    r = 0.5 + d_r
+    average1_pmf = compute_average_pmf(args)
+
+    num_states = len(pmf)
+    X_axis = np.arange(num_states)
+
+    bar_width = 0.4
+    plt.bar(X_axis - bar_width / 2, average_pmf, bar_width, label='0.5')
+    plt.bar(X_axis + bar_width / 2, average1_pmf, bar_width, label='0.5 + d_r')
+
+    plt.xticks(X_axis, X_axis)  # Use system states as x-axis labels
+    plt.xlabel('System States (Decimal Value)')
+    plt.ylabel('PMF')
+    plt.title('PMF values for 0.5 and 0.5 + dr')
+    plt.legend()
+    plt.show()
+
+
+    # Soring the pmf arrays and making a line pot
+
+    args = (network, r, num_T)
+    r = 0.1
+    average_pmf = compute_average_pmf(args)
+    average_pmf.sort()
+    r = 0.1 + d_r
+    average1_pmf = compute_average_pmf(args)
+    average1_pmf.sort()
+
+    num_states = len(pmf)
+    X_axis = np.arange(num_states)
+    plt.plot(X_axis, average_pmf, label='r=0.1', linestyle='-', marker='o')
+    plt.plot(X_axis, average1_pmf, label='r=0.1 + d_r', linestyle='-', marker='o')
+    # Fill the area under the curves
+    plt.fill_between(X_axis, average_pmf, alpha=0.2)
+    plt.fill_between(X_axis, average1_pmf, alpha=0.2)
+
+    plt.xlabel('System States (Decimal Value)')
+    plt.ylabel('PMF')
+    plt.title('Sorted PMF values for 0.1 and 0.1 + dr')
+    plt.legend()
+    plt.show()
+
+
+    # Now for 0.5
+
+    args = (network, r, num_T)
+    r = 0.5
+    average_pmf = compute_average_pmf(args)
+    average_pmf.sort()
+    r = 0.5 + d_r
+    average1_pmf = compute_average_pmf(args)
+    average1_pmf.sort()
+
+    num_states = len(pmf)
+    X_axis = np.arange(num_states)
+    plt.plot(X_axis, average_pmf, label='r=0.5', linestyle='-', marker='o')
+    plt.plot(X_axis, average1_pmf, label='r=0.5 + d_r', linestyle='-', marker='o')
+    # Fill the area under the curves
+    plt.fill_between(X_axis, average_pmf, alpha=0.2)
+    plt.fill_between(X_axis, average1_pmf, alpha=0.2)
+
+    plt.xlabel('System States (Decimal Value)')
+    plt.ylabel('PMF')
+    plt.title('Sorted PMF values for 0.1 and 0.1 + dr')
+    plt.legend()
+    plt.show()
+
+
 
 if __name__ == "__main__":
     main()
