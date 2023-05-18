@@ -451,13 +451,13 @@ def main():
     # a solution would be to let an agent model another agent.
     pmf_agent = np.append(pmf_agent, np.zeros(len(pmf_environment) - len(pmf_agent)))
     #calculating hellinger distance or KL divergence? First Hellinger I think.
-    print(hellinger_distance(pmf_environment,pmf_agent))
+    print("Initial Hellinger distance", hellinger_distance(pmf_environment,pmf_agent))
     # what we can now do, is maybe calculating the fisher information and choosing the index (r)
     # for which it is at an optimum (or just choose 0.5). and then change the network a bit with this r? and see if it comes closer?
 
     F_array, diff_array = Agent.compute_Fisher(d_r, num_T, threshold, num_processes)
     max_I = np.argmax(F_array)*d_r
-    print(max_I)
+    print("r at maximum Fisher information", max_I)
     #so now the agent knows what its value of r is such that it is most perceptible to change.
 
     # I should now build something to decrease the Hellinger distance. Maybe:
@@ -482,24 +482,29 @@ def main():
     # a solution would be to let an agent model another agent.
     pmf_agent = np.append(pmf_agent, np.zeros(len(pmf_environment) - len(pmf_agent)))
     # calculating hellinger distance or KL divergence? First Hellinger I think.
-    print(hellinger_distance(pmf_environment, pmf_agent))
+    print("Initial Hellinger distance (in the new idea try)",hellinger_distance(pmf_environment, pmf_agent))
     # what we can now do, is maybe calculating the fisher information and choosing the index (r)
     # for which it is at an optimum (or just choose 0.5). and then change the network a bit with this r? and see if it comes closer?
 
     F_array, diff_array = Agent.compute_Fisher(d_r, num_T, threshold, num_processes)
     max_I = np.argmax(F_array) * d_r
-    print(max_I)
+    print("r at maximum Fisher information for the agent:", max_I)
 
     #lets write some rudimentary code for it!
     #change the logic tables bit by bit, to see if there can be a difference
-    Agent_new = copy.deepcopy(Agent)
-    Agent_new.modify_logic_tables(increment = 0.1)
-    pmf_agent_old = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-    pmf_agent = Agent_new.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-    if hellinger_distance(pmf_environment, pmf_agent) < hellinger_distance(pmf_environment, pmf_agent_old):
-        Agent = Agent_new
-
-
+    maxiter = 1000
+    for _ in range(maxiter):
+        Agent_new = copy.deepcopy(Agent)
+        Agent_new.modify_logic_tables(max_I)
+        initial_vector, sparse_matrix = Agent.create_initial_vector_and_sparse_matrix()
+        pmf_agent_old = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        initial_vector, sparse_matrix = Agent_new.create_initial_vector_and_sparse_matrix()
+        pmf_agent = Agent_new.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        if hellinger_distance(pmf_environment, pmf_agent) < hellinger_distance(pmf_environment, pmf_agent_old):
+            print("Smaller Hellinger distance:", hellinger_distance(pmf_environment, pmf_agent))
+            if hellinger_distance(pmf_environment, pmf_agent) < 0.1:
+                break
+            Agent = Agent_new
 
 if __name__ == "__main__":
     main()
