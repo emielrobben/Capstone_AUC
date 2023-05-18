@@ -419,7 +419,6 @@ def main():
     network.plot_states()
     print_pmf(network, N)
     Fisher_plot(d_r, num_T, threshold, num_processes, network)
-
     one_barplot(network, r, num_T, d_r)
     convergence(num_T, N, network, r)
     pmf_barplot(network, r, num_T, d_r)
