@@ -164,16 +164,19 @@ class RBN:
         log_pmf = np.where(pmf == 0, 0, np.log(pmf))
         log_pmf_prev = np.where(pmf_prev == 0, 0, np.log(pmf_prev))
         log_diff = np.abs(log_pmf - log_pmf_prev)
+        diff = abs(pmf-pmf_prev)
 
         filtered_pmf = np.where(log_diff >= threshold, pmf, 0)
         result = np.where(log_diff >= threshold, log_diff, 0)
 
-        return result, filtered_pmf
+        return result, filtered_pmf, diff
 
     def compute_Fisher(self, d_r, num_T, threshold, n_processes=None):
         N = self.N
         num_states = 2 ** N
         F = 0
+        diff_cum = 0
+        diff_array = np.zeros(len(np.arange(0, 1 + d_r, d_r)))
         F_array = np.zeros(len(np.arange(0, 1 + d_r, d_r)))
         r_values = np.arange(0, 1 + d_r, d_r)
 
@@ -188,24 +191,28 @@ class RBN:
         for column_index in range(1, num_columns):
             column_1 = pmf_stack[:, column_index]
             column_0 = pmf_stack[:, column_index - 1]
-            result, filtered_pmf = self.filter_pmf_and_compare(column_1, column_0, threshold)
+            result, filtered_pmf, diff = self.filter_pmf_and_compare(column_1, column_0, threshold)
 
             for j in range(len(result)):
                 result_value = result[j]
                 filtered_pmf_value = filtered_pmf[j]
+                diff_value =diff[j]
 
                 F += (filtered_pmf_value * ((result_value / d_r) ** 2))
+                diff_cum += diff_value
+            diff_array[t + 1] = diff_cum
             F_array[t + 1] = F
             F = 0
+            diff_cum = 0
 
             t = t + 1
 
         F_array[-1] = 0
-        return F_array
+        return F_array, diff_array
 
 def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     # Calculate Fisher information array
-    F_array = network.compute_Fisher(d_r, num_T, threshold, num_processes)
+    F_array, diff_array = network.compute_Fisher(d_r, num_T, threshold, num_processes)
 
     # Plot F_array against the equally spaced values
     x_values = np.linspace(0, 1, len(F_array))
@@ -217,6 +224,29 @@ def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
     # sys.exit("Stopping the code execution.")
     plt.show()
+    x_values = np.linspace(0, 1, len(diff_array))
+    plt.plot(x_values, diff_array, marker='o', linestyle='-')
+    plt.xlabel('x values')
+    plt.ylabel('diff_array values')
+    plt.title('Values of the difference in pmf plotted between 0 and 1')
+    plt.grid(True)
+    # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
+    # sys.exit("Stopping the code execution.")
+    plt.show()
+# def difference_plot(d_r, num_T, threshold, num_processes, network):
+#     # Calculate Fisher information array
+#     F_array, diff_array = network.compute_Fisher(d_r, num_T, threshold, num_processes)
+#
+#     # Plot F_array against the equally spaced values
+#     x_values = np.linspace(0, 1, len(F_array))
+#     plt.plot(x_values, diff_array, marker='o', linestyle='-')
+#     plt.xlabel('x values')
+#     plt.ylabel('diff_array values')
+#     plt.title('Values of the difference in pmf plotted between 0 and 1')
+#     plt.grid(True)
+#     # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
+#     # sys.exit("Stopping the code execution.")
+#     plt.show()
 def one_barplot(network, r, num_T, d_r):
     # a bar plot with how much the pmf changes for a certtain r +dr
     args = (network, r, num_T)
@@ -389,13 +419,17 @@ def main():
     network.plot_states()
     print_pmf(network, N)
     Fisher_plot(d_r, num_T, threshold, num_processes, network)
+
     one_barplot(network, r, num_T, d_r)
     convergence(num_T, N, network, r)
     pmf_barplot(network, r, num_T, d_r)
     sorted_pmf_plot(network, r, num_T, d_r)
-
     #print("Runtime Fisher")
     #cProfile.run('network.compute_Fisher(d_r, num_T, threshold, num_processes)')
+
+    # and now the agent part! This is the part that I am most stressed about, but today it will get my full attention
+    # (although I need to schedule a lill session to see if my Fisher works. I can do the change graph first? but should't take too long)
+
 
 if __name__ == "__main__":
     main()
