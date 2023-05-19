@@ -1,4 +1,3 @@
-
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -12,21 +11,35 @@ from functools import partial
 import multiprocessing
 from multiprocessing import Pool
 import sys
-import copy
 
+# Importing necessary modules for network creation, plotting, randomization,
+# array handling, sparse matrix operations, mathematical functions,
+# profiling, regular expressions, functional programming utilities,
+# multiprocessing and system-specific parameters.
+
+# Function that computes the average probability mass function (pmf) given certain parameters.
 def compute_average_pmf(args):
+    # Unpacking the input parameters for the function
     rbn_instance, r, num_T = args
+    # Get the instance of the RBN
     network = rbn_instance
+    # Initialize a zeroed pmf array of size equal to 2^N (total possible states)
     combined_pmf = np.zeros(2 ** network.N)
     for _ in range(num_T):
+        # Generate the logic tables for the network based on flip probability r
         network.generate_logic_tables(r)
+        # Create the initial vector and the sparse transition matrix for the network
         initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
+        # Compute the stationary distribution (long-term behavior) of the network
         pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        # Combine the computed pmf into the cumulative one
         combined_pmf += pmf
+    # Compute the average pmf over all iterations
     average_pmf = combined_pmf / num_T
     return average_pmf
-
 class RBN:
+    # The __init__ method initializes the RBN with a given number of inputs per node (K),
+    # a number of nodes (N), and a flip probability (r).
     def __init__(self, K, N, r):
         self.K = K  # Number of inputs per node
         self.N = N  # Number of nodes in the network
@@ -35,6 +48,8 @@ class RBN:
         self.initialization()
         self.generate_logic_tables(self.r)
 
+    # This method sets up the initial state of the RBN, setting the degrees of nodes and edges,
+    # and assigning initial states to the nodes.
     def initialization(self):
         #Accounting for the fact that the function deletes half of the nodes
         self.K = 2 * (self.K)
@@ -48,6 +63,7 @@ class RBN:
         for i in range(self.N):
             self.G.nodes[i]["state"] = random.choice([True, False])
 
+    # This method generates logic tables for all nodes in the network.
     def generate_logic_tables(self, r):
         for i in self.G.nodes:
             inputs = list(self.G.predecessors(i))
@@ -55,7 +71,7 @@ class RBN:
             self.G.nodes[i]["inputs"] = inputs
             self.G.nodes[i]["truth_table"] = truth_table
 
-    # this function is used in Fisher
+    # This method modifies the logic tables, toggling the state of a node with a given probability.
     def modify_logic_tables(self, increment_prob):
         for i in self.G.nodes:
             truth_table = self.G.nodes[i]["truth_table"]
@@ -64,6 +80,7 @@ class RBN:
                     truth_table[j] = not truth_table[j]
             self.G.nodes[i]["truth_table"] = truth_table
 
+    # Helper functions to convert from binary to decimal and vice versa.
     def bin_to_dec(self, bin_list):
         return np.dot(bin_list, 2 ** np.arange(len(bin_list))[::-1])
 
@@ -80,6 +97,7 @@ class RBN:
         bin_str = ''.join(['1' if b else '0' for b in bin_list])
         return bin_str
 
+    # Generates the next state of the network.
     def step(self, show_plot=False):
         new_state = []
         for node in self.G.nodes:
@@ -99,6 +117,7 @@ class RBN:
         nx.draw(self.G, with_labels=True, node_color=colors, font_weight='bold')
         plt.show()
 
+    # Creates the initial state vector and the transition matrix.
     def create_initial_vector_and_sparse_matrix(self):
         num_states = 2 ** (self.N)
         initial_vector = np.ones(num_states) / num_states
@@ -139,7 +158,7 @@ class RBN:
         # to be a bit more efficient: I just need to take my "before step" initialization, and only change the nodes that need to changes.
 
         return initial_vector, transition_matrix
-
+    # Finds the stationary distribution of the network given an initial state and a transition matrix.
     def find_stationary_distribution(self, initial_vector, transition_matrix, tolerance, num_iterations=100):
         probability_vector = initial_vector
 
@@ -160,6 +179,9 @@ class RBN:
     # important to run enough times
     # plotting? Is the easy part, already implemented
 
+
+    # This method finds the stationary distribution of the network using the power method.
+
     def filter_pmf_and_compare(self, pmf, pmf_prev, threshold):
         num_states = len(pmf)
         log_pmf = np.where(pmf == 0, 0, np.log(pmf))
@@ -172,6 +194,8 @@ class RBN:
 
         return result, filtered_pmf, diff
 
+    # This method computes the Fisher information measure for the network. The Fisher information is used to
+    # quantify the sensitivity of the distribution of network states to changes in the network parameter r.
     def compute_Fisher(self, d_r, num_T, threshold, n_processes=None):
         N = self.N
         num_states = 2 ** N
@@ -188,7 +212,6 @@ class RBN:
         pmf_stack = pmf_stack.T
         num_columns = pmf_stack.shape[1]
         assert num_columns == int(1 / d_r) + 1, f'{num_columns=}'
-        #print(pmf_stack)
         t = 0
         for column_index in range(1, num_columns):
             column_1 = pmf_stack[:, column_index]
@@ -211,7 +234,7 @@ class RBN:
 
         F_array[-1] = 0
         return F_array, diff_array
-
+# This function plots Fisher information and difference in PMF as a function of x values.
 def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     # Calculate Fisher information array
     F_array, diff_array = network.compute_Fisher(d_r, num_T, threshold, num_processes)
@@ -224,7 +247,7 @@ def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     plt.title('Values of Fisher information plotted between 0 and 1')
     plt.grid(True)
     # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
-    # sys.exit("Stopping the code execution.")
+
     plt.show()
     x_values = np.linspace(0, 1, len(diff_array))
     plt.plot(x_values, diff_array, marker='o', linestyle='-')
@@ -233,22 +256,8 @@ def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     plt.title('Values of the difference in pmf plotted between 0 and 1')
     plt.grid(True)
     # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
-    # sys.exit("Stopping the code execution.")
     plt.show()
-# def difference_plot(d_r, num_T, threshold, num_processes, network):
-#     # Calculate Fisher information array
-#     F_array, diff_array = network.compute_Fisher(d_r, num_T, threshold, num_processes)
-#
-#     # Plot F_array against the equally spaced values
-#     x_values = np.linspace(0, 1, len(F_array))
-#     plt.plot(x_values, diff_array, marker='o', linestyle='-')
-#     plt.xlabel('x values')
-#     plt.ylabel('diff_array values')
-#     plt.title('Values of the difference in pmf plotted between 0 and 1')
-#     plt.grid(True)
-#     # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
-#     # sys.exit("Stopping the code execution.")
-#     plt.show()
+# This function creates a bar plot showing how much the PMF changes for a certain r + dr.
 def one_barplot(network, r, num_T, d_r):
     # a bar plot with how much the pmf changes for a certtain r +dr
     args = (network, r, num_T)
@@ -274,6 +283,7 @@ def one_barplot(network, r, num_T, d_r):
     plt.title('The change of pmf per r')
     plt.show()
 
+# This function shows the convergence of error over a number of iterations.
 def convergence(num_T, N, network,r):
     # extra part, maybe soon in jupyter notebook
     # showing that
@@ -296,6 +306,7 @@ def convergence(num_T, N, network,r):
     plt.title('Error convergence')
     plt.grid(True)
     plt.show()
+# This function plots PMF for two scenarios side by side for visual comparison.
 def pmf_barplot(network, r, num_T, d_r, ):
  # the upgraded bar plot with 2**N  times two bars
 
@@ -339,7 +350,7 @@ def pmf_barplot(network, r, num_T, d_r, ):
     plt.title('PMF values for 0.5 and 0.5 + dr')
     plt.legend()
     plt.show()
-
+# This function sorts the pmf arrays and makes a line plot for visual comparison.
 def sorted_pmf_plot(network, r, num_T, d_r):
     # Soring the pmf arrays and making a line pot
 
@@ -402,6 +413,7 @@ def print_pmf(network, N):
             p_sum = p_sum + pmf[i]
             print("p(", network.bin_to_bin_str(network.dec_to_bin(i)), ") :", pmf[i])
     print("Probability sum:", p_sum)
+
 def hellinger_distance(pmf_environment, pmf_agent):
     # Ensure the PMFs sum to 1
     pmf_environment = pmf_environment / np.sum(pmf_environment)
