@@ -422,19 +422,8 @@ def main():
     num_T = 10
     num_processes = 4
 
-    # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6
-    # network = RBN(K, N, r)
-    #
-    # network.plot_states()
-    # print_pmf(network, N)
     # Fisher_plot(d_r, num_T, threshold, num_processes, network)
-    #
-    # one_barplot(network, r, num_T, d_r)
-    # convergence(num_T, N, network, r)
-    # pmf_barplot(network, r, num_T, d_r)
-    # sorted_pmf_plot(network, r, num_T, d_r)
-    #print("Runtime Fisher")
-    #cProfile.run('network.compute_Fisher(d_r, num_T, threshold, num_processes)')
+
 
     # and now the agent part! This is the part that I am most stressed about, but today it will get my full attention
     # (although I need to schedule a lill session to see if my Fisher works. I can do the change graph first? but should't take too long)
@@ -466,11 +455,11 @@ def main():
     # I would need to change these tables a bit (and this is where r can actually come in). Problem:
     # if one has more nodes than the other, then you can't do this.
     r_environment = 0.2
-    base = RBN(K, 6, r)
+    base = RBN(K, 7, r)
     base2 = copy.deepcopy(base)
     base.generate_logic_tables(0.7)
     Environment = base
-    base2.generate_logic_tables(0.1)
+    base2.generate_logic_tables(0.5)
     Agent = base2
 
     initial_vector, sparse_matrix = Environment.create_initial_vector_and_sparse_matrix()
@@ -492,19 +481,64 @@ def main():
 
     #lets write some rudimentary code for it!
     #change the logic tables bit by bit, to see if there can be a difference
-    maxiter = 1000
-    for _ in range(maxiter):
-        Agent_new = copy.deepcopy(Agent)
-        Agent_new.modify_logic_tables(max_I)
-        initial_vector, sparse_matrix = Agent.create_initial_vector_and_sparse_matrix()
-        pmf_agent_old = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-        initial_vector, sparse_matrix = Agent_new.create_initial_vector_and_sparse_matrix()
-        pmf_agent = Agent_new.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-        if hellinger_distance(pmf_environment, pmf_agent) < hellinger_distance(pmf_environment, pmf_agent_old):
-            print("Smaller Hellinger distance:", hellinger_distance(pmf_environment, pmf_agent))
-            if hellinger_distance(pmf_environment, pmf_agent) < 0.1:
-                break
-            Agent = Agent_new
+
+
+    maxiter = 30
+
+    change_array = np.zeros(20)
+    zero_array = np.zeros(20)
+    for i in range(20):
+        change_count = 0
+        base = RBN(K, 6, r)
+        base2 = copy.deepcopy(base)
+        base.generate_logic_tables(0.7)
+        Environment = base
+        base2.generate_logic_tables(0.6)
+        Agent = base2
+        initial_vector, sparse_matrix = Environment.create_initial_vector_and_sparse_matrix()
+        pmf_environment = Environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        average_count = 0
+        steps_to_zero_array = np.zeros(0)
+        for k in range(5):
+            change_count = 0
+            steps_to_zero = 0
+            for j in range(maxiter):
+                Agent_new = copy.deepcopy(Agent)
+                Agent_new.modify_logic_tables(i/20)
+                initial_vector, sparse_matrix = Agent.create_initial_vector_and_sparse_matrix()
+                pmf_agent_old = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+                initial_vector, sparse_matrix = Agent_new.create_initial_vector_and_sparse_matrix()
+                pmf_agent = Agent_new.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+                if hellinger_distance(pmf_environment, pmf_agent) < hellinger_distance(pmf_environment, pmf_agent_old):
+                    print("Smaller Hellinger distance:", hellinger_distance(pmf_environment, pmf_agent))
+                    change_count +=1
+                    steps_to_zero += 1
+                    if hellinger_distance(pmf_environment, pmf_agent) < 0.1:
+                        steps_to_zero_array = np.append(steps_to_zero_array, steps_to_zero)
+                        break
+                    Agent = Agent_new
+            average_count += change_count
+        average_count /= 5
+        change_array[i] = average_count
+        if len(steps_to_zero_array) == 0:
+            zero_array[i] = 30
+        else:
+            zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
+
+    x_values = np.linspace(0, 1, len(change_array))
+    plt.plot(x_values, change_array, marker='o', linestyle='-')
+    plt.xlabel('x values')
+    plt.ylabel('change values')
+    plt.title('change')
+    plt.grid(True)
+    plt.show()
+    x_values = np.linspace(0, 1, len(change_array))
+    plt.plot(x_values, zero_array, marker='o', linestyle='-')
+    plt.xlabel('x values')
+    plt.ylabel('change values')
+    plt.title('change')
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
     main()
