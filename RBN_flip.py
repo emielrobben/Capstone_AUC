@@ -11,6 +11,8 @@ from functools import partial
 import multiprocessing
 from multiprocessing import Pool
 import sys
+import copy
+
 
 # Importing necessary modules for network creation, plotting, randomization,
 # array handling, sparse matrix operations, mathematical functions,
