@@ -497,25 +497,37 @@ def main():
     #change the logic tables bit by bit, to see if there can be a difference
 
 
-    maxiter = 30
+    maxiter = 100
 
     change_array = np.zeros(20)
     zero_array = np.zeros(20)
+    iteration_to_zero_array = np.zeros(20)
+    rate_array = np.zeros(20)
     for i in range(20):
         change_count = 0
         base = RBN(K, 6, r)
         base2 = copy.deepcopy(base)
         base.generate_logic_tables(0.7)
         Environment = base
-        base2.generate_logic_tables(0.6)
+        base2.generate_logic_tables(0)
         Agent = base2
         initial_vector, sparse_matrix = Environment.create_initial_vector_and_sparse_matrix()
         pmf_environment = Environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
         average_count = 0
         steps_to_zero_array = np.zeros(0)
-        for k in range(5):
+        av_it = 0
+        iteration_for_average= 5
+        av_rate_measure = 0
+        for k in range(iteration_for_average):
             change_count = 0
             steps_to_zero = 0
+            iteration_to_zero = 0
+            rate_measure = 0
+            last_rate = 0
+
+            initial_vector, sparse_matrix = Agent.create_initial_vector_and_sparse_matrix()
+            pmf_agent = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+            start_for_rate = hellinger_distance(pmf_environment, pmf_agent)
             for j in range(maxiter):
                 Agent_new = copy.deepcopy(Agent)
                 Agent_new.modify_logic_tables(i/20)
@@ -523,17 +535,29 @@ def main():
                 pmf_agent_old = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
                 initial_vector, sparse_matrix = Agent_new.create_initial_vector_and_sparse_matrix()
                 pmf_agent = Agent_new.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+                last_rate = hellinger_distance(pmf_environment, pmf_agent_old)
                 if hellinger_distance(pmf_environment, pmf_agent) < hellinger_distance(pmf_environment, pmf_agent_old):
                     print("Smaller Hellinger distance:", hellinger_distance(pmf_environment, pmf_agent))
                     change_count +=1
                     steps_to_zero += 1
+                    last_rate = hellinger_distance(pmf_environment, pmf_agent)
                     if hellinger_distance(pmf_environment, pmf_agent) < 0.1:
                         steps_to_zero_array = np.append(steps_to_zero_array, steps_to_zero)
+                        iteration_to_zero = j
+
                         break
                     Agent = Agent_new
+                iteration_to_zero = 300
+                rate_measure += (last_rate - start_for_rate) / maxiter
             average_count += change_count
-        average_count /= 5
+            av_it += iteration_to_zero
+            av_rate_measure += rate_measure
+        average_count /= iteration_for_average
         change_array[i] = average_count
+        av_it /= iteration_for_average
+        av_rate_measure /= iteration_for_average
+        rate_array[i] = av_rate_measure
+        iteration_to_zero_array[i] = av_it
         if len(steps_to_zero_array) == 0:
             zero_array[i] = 30
         else:
@@ -551,6 +575,20 @@ def main():
     plt.xlabel('x values')
     plt.ylabel('change values')
     plt.title('change')
+    plt.grid(True)
+    plt.show()
+    x_values = np.linspace(0, 1, len(change_array))
+    plt.plot(x_values, iteration_to_zero_array, marker='o', linestyle='-')
+    plt.xlabel('x values')
+    plt.ylabel('change values')
+    plt.title('iteration to zero')
+    plt.grid(True)
+    plt.show()
+    x_values = np.linspace(0, 1, len(change_array))
+    plt.plot(x_values, rate_array, marker='o', linestyle='-')
+    plt.xlabel('x values')
+    plt.ylabel('rate')
+    plt.title('the rate of going to 0')
     plt.grid(True)
     plt.show()
 
