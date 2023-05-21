@@ -424,81 +424,7 @@ def hellinger_distance(pmf_environment, pmf_agent):
     # Calculate the Hellinger distance
     return np.sqrt(np.sum((np.sqrt(pmf_environment) - np.sqrt(pmf_agent))**2)) / np.sqrt(2)
 
-# Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
-def main():
-    # Set parameters for the RBN
-    K = 6
-
-    N = 8
-    r = 0.6
-    threshold = 0
-    d_r = 0.05
-    num_T = 10
-    num_processes = 4
-
-    # Fisher_plot(d_r, num_T, threshold, num_processes, network)
-
-
-    # and now the agent part! This is the part that I am most stressed about, but today it will get my full attention
-    # (although I need to schedule a lill session to see if my Fisher works. I can do the change graph first? but should't take too long)
-    r_environment = 0.2
-    Environment = RBN(K,6,r_environment)
-    Agent = RBN(K,5,r)
-
-    initial_vector, sparse_matrix = Environment.create_initial_vector_and_sparse_matrix()
-    pmf_environment = Environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-
-    initial_vector, sparse_matrix = Agent.create_initial_vector_and_sparse_matrix()
-    pmf_agent = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-    #extending pmf_agent: bc you cannot calculate it when the pmf's do not have the same amount of elements
-    # a solution would be to let an agent model another agent.
-    pmf_agent = np.append(pmf_agent, np.zeros(len(pmf_environment) - len(pmf_agent)))
-    #calculating hellinger distance or KL divergence? First Hellinger I think.
-    print("Initial Hellinger distance", hellinger_distance(pmf_environment,pmf_agent))
-    # what we can now do, is maybe calculating the fisher information and choosing the index (r)
-    # for which it is at an optimum (or just choose 0.5). and then change the network a bit with this r? and see if it comes closer?
-
-    F_array, diff_array = Agent.compute_Fisher(d_r, num_T, threshold, num_processes)
-    max_I = np.argmax(F_array)*d_r
-    print("r at maximum Fisher information", max_I)
-    #so now the agent knows what its value of r is such that it is most perceptible to change.
-
-    # I should now build something to decrease the Hellinger distance. Maybe:
-    #I got this pmf now, but I need to come to states where the pmf is more alike. How to do this gradually?
-    # actually: I can't change the network, but I can change the logic tables. It would be dope if for these givens,
-    # I would need to change these tables a bit (and this is where r can actually come in). Problem:
-    # if one has more nodes than the other, then you can't do this.
-    r_environment = 0.2
-    base = RBN(K, 7, r)
-    base2 = copy.deepcopy(base)
-    base.generate_logic_tables(0.7)
-    Environment = base
-    base2.generate_logic_tables(0.5)
-    Agent = base2
-
-    initial_vector, sparse_matrix = Environment.create_initial_vector_and_sparse_matrix()
-    pmf_environment = Environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-
-    initial_vector, sparse_matrix = Agent.create_initial_vector_and_sparse_matrix()
-    pmf_agent = Agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-    # extending pmf_agent: bc you cannot calculate it when the pmf's do not have the same amount of elements
-    # a solution would be to let an agent model another agent.
-    pmf_agent = np.append(pmf_agent, np.zeros(len(pmf_environment) - len(pmf_agent)))
-    # calculating hellinger distance or KL divergence? First Hellinger I think.
-    print("Initial Hellinger distance (in the new idea try)",hellinger_distance(pmf_environment, pmf_agent))
-    # what we can now do, is maybe calculating the fisher information and choosing the index (r)
-    # for which it is at an optimum (or just choose 0.5). and then change the network a bit with this r? and see if it comes closer?
-
-    F_array, diff_array = Agent.compute_Fisher(d_r, num_T, threshold, num_processes)
-    max_I = np.argmax(F_array) * d_r
-    print("r at maximum Fisher information for the agent:", max_I)
-
-    #lets write some rudimentary code for it!
-    #change the logic tables bit by bit, to see if there can be a difference
-
-
-    maxiter = 100
-
+def calculate_decrease_hellinger_distance(K, r, maxiter, d_r, num_T, threshold, num_processes):
     change_array = np.zeros(20)
     zero_array = np.zeros(20)
     iteration_to_zero_array = np.zeros(20)
@@ -511,13 +437,16 @@ def main():
         Environment = base
         base2.generate_logic_tables(0)
         Agent = base2
+        F_array, diff_array = Agent.compute_Fisher(d_r, num_T, threshold, num_processes)
+        max_I = np.argmax(F_array) * d_r
+        print("r at maximum Fisher information", max_I)
         initial_vector, sparse_matrix = Environment.create_initial_vector_and_sparse_matrix()
         pmf_environment = Environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
         average_count = 0
         steps_to_zero_array = np.zeros(0)
         av_it = 0
-        iteration_for_average= 5
         av_rate_measure = 0
+        iteration_for_average = 10
         for k in range(iteration_for_average):
             change_count = 0
             steps_to_zero = 0
@@ -562,36 +491,60 @@ def main():
             zero_array[i] = 30
         else:
             zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
+    return change_array, zero_array, iteration_to_zero_array, rate_array
 
-    x_values = np.linspace(0, 1, len(change_array))
+def plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array):
+    plt.figure(figsize=(10, 8))
+
+    plt.subplot(2, 2, 1)
     plt.plot(x_values, change_array, marker='o', linestyle='-')
     plt.xlabel('x values')
-    plt.ylabel('change values')
-    plt.title('change')
+    plt.ylabel('Change in Hellinger distance')
+    plt.title('Change in Hellinger distance over steps')
     plt.grid(True)
-    plt.show()
-    x_values = np.linspace(0, 1, len(change_array))
+
+    plt.subplot(2, 2, 2)
     plt.plot(x_values, zero_array, marker='o', linestyle='-')
     plt.xlabel('x values')
-    plt.ylabel('change values')
-    plt.title('change')
+    plt.ylabel('zero values')
+    plt.title('The number of steps it takes to get to 0 (values of agents that do not reach 0 are set to 30)')
     plt.grid(True)
-    plt.show()
-    x_values = np.linspace(0, 1, len(change_array))
+
+    plt.subplot(2, 2, 3)
     plt.plot(x_values, iteration_to_zero_array, marker='o', linestyle='-')
     plt.xlabel('x values')
-    plt.ylabel('change values')
-    plt.title('iteration to zero')
+    plt.ylabel('iteration to zero values')
+    plt.title('Number of iterations before reaching a Hellinger distance of 0')
     plt.grid(True)
-    plt.show()
-    x_values = np.linspace(0, 1, len(change_array))
+
+    plt.subplot(2, 2, 4)
     plt.plot(x_values, rate_array, marker='o', linestyle='-')
     plt.xlabel('x values')
-    plt.ylabel('rate')
-    plt.title('the rate of going to 0')
+    plt.ylabel('rate values')
+    plt.title('the rate of going to a Hellinger distance of 0')
     plt.grid(True)
+
+    plt.tight_layout()
     plt.show()
 
+# Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
+def main():
+    # Set parameters for the RBN
+    K = 6
+
+    N = 8
+    r = 0.6
+    threshold = 0
+    d_r = 0.05
+    num_T = 10
+    num_processes = 4
+    maxiter = 10
+
+
+    change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance(K, r, maxiter, d_r, num_T,
+                                                                                              threshold, num_processes)
+    x_values = np.linspace(0, 1, len(change_array))
+    plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
 if __name__ == "__main__":
     main()
 
