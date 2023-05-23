@@ -429,7 +429,7 @@ def calculate_decrease_Hellinger_per_r(K, r, maxiter, d_r, num_T, threshold, num
     zero_array = np.zeros(20)
     iteration_to_zero_array = np.zeros(20)
     rate_array = np.zeros(20)
-    for i in range(20):
+    for i in range(int(1/d_r)):
         r = i/20
         d_r = 0.5 #the mutation rate
         change_count = 0
@@ -448,7 +448,7 @@ def calculate_decrease_Hellinger_per_r(K, r, maxiter, d_r, num_T, threshold, num
         steps_to_zero_array = np.zeros(0)
         av_it = 0
         av_rate_measure = 0
-        iteration_for_average = 10
+        iteration_for_average = 20
         for k in range(iteration_for_average):
             change_count = 0
             steps_to_zero = 0
@@ -601,22 +601,22 @@ def plot_results(x_values, change_array, zero_array, iteration_to_zero_array, ra
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
 def main():
     # Set parameters for the RBN
-    K = 6
+    K = 4
 
-    N = 5
+    N = 8
     r = 0.6
     threshold = 0
     d_r = 0.05
     num_T = 10
     num_processes = 4
-    maxiter = 10
+    maxiter = 50
 
 
-    change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance(K, r, maxiter, d_r, num_T,
-                                                                                              threshold, num_processes)
-    x_values = np.linspace(0, 1, len(change_array))
-    plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
-
+    # change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance(K, r, maxiter, d_r, num_T,
+    #                                                                                           threshold, num_processes)
+    # x_values = np.linspace(0, 1, len(change_array))
+    # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
+    #
 
     change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_Hellinger_per_r(K, r, maxiter, d_r, num_T, threshold, num_processes)
     x_values = np.linspace(0, 1, len(change_array))
