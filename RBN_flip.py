@@ -521,6 +521,9 @@ def calculate_decrease_Hellinger_per_r(K, r, maxiter, iteration_for_average,  d_
         print("r at maximum Fisher information", max_I)
         initial_vector, sparse_matrix = environment.create_initial_vector_and_sparse_matrix()
         pmf_environment = environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+
+
+
         average_count = 0
         steps_to_zero_array = np.zeros(0)
         av_it = 0
