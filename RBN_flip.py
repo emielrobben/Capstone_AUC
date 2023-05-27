@@ -47,9 +47,11 @@ class RBN:
         self.K = K  # Number of inputs per node
         self.N = N  # Number of nodes in the network
         self.r = r  # Flip probability
+        #self.p = p
         self.G = nx.DiGraph()
         self.initialization()
         self.generate_logic_tables(self.r)
+
 
     # This method sets up the initial state of the RBN, setting the degrees of nodes and edges,
     # and assigning initial states to the nodes.
@@ -66,6 +68,20 @@ class RBN:
         for i in range(self.N):
             self.G.nodes[i]["state"] = random.choice([True, False])
 
+    def initialization_exp(self):
+        # Create a Watts-Strogatz small-world network
+        self.G = nx.watts_strogatz_graph(self.N, self.K, self.p)
+
+        # Convert to a directed graph and randomize edge direction
+        self.G = nx.DiGraph(self.G)
+        for u, v in list(self.G.edges()):
+            if random.random() < 0.5:
+                self.G.remove_edge(u, v)
+                self.G.add_edge(v, u)
+
+        # Assign a random state to each node
+        for i in range(self.N):
+            self.G.nodes[i]["state"] = random.choice([True, False])
     # This method generates logic tables for all nodes in the network.
     def generate_logic_tables(self, r):
         for i in self.G.nodes:
@@ -427,7 +443,7 @@ def hellinger_distance(pmf_environment, pmf_agent):
 
 
 
-def mutation(agent, pmf_environment, change_count, steps_to_zero, mutation_rate, start_for_rate, maxiter, j, steps_to_zero_array):
+def mutation(agent, pmf_environment, hellinger_distance_array, change_count, steps_to_zero, mutation_rate, start_for_rate, maxiter, j, steps_to_zero_array):
 
     agent_new = copy.deepcopy(agent)
     agent_new.modify_logic_tables(mutation_rate)
@@ -438,27 +454,94 @@ def mutation(agent, pmf_environment, change_count, steps_to_zero, mutation_rate,
     last_rate = hellinger_distance(pmf_environment, pmf_agent_old)
     iteration_to_zero = 300
     rate_measure = (last_rate - start_for_rate) / maxiter
-
+    hellinger_distance_array[j] = hellinger_distance(pmf_environment, pmf_agent_old)
     if hellinger_distance(pmf_environment, pmf_agent) < hellinger_distance(pmf_environment, pmf_agent_old):
         print("Smaller Hellinger distance:", hellinger_distance(pmf_environment, pmf_agent))
         change_count += 1
         steps_to_zero += 1
         last_rate = hellinger_distance(pmf_environment, pmf_agent)
-        if hellinger_distance(pmf_environment, pmf_agent) < 0.1:
+        if hellinger_distance(pmf_environment, pmf_agent) <= 0.00000:
             steps_to_zero_array = np.append(steps_to_zero_array, steps_to_zero)
             iteration_to_zero = j
             rate_measure = (last_rate - start_for_rate) / j if j != 0 else 0
         agent = agent_new
 
-    return agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, steps_to_zero_array
+    return agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, hellinger_distance_array, steps_to_zero_array
 
+def calculate_average_change(agent, pmf_environment, mutation_rate, maxiter, iteration_for_average):
+    average_count = 0
+    steps_to_zero_array = np.zeros(0)
+    av_it = 0
+    av_rate_measure = 0
+    av_distance = np.zeros(maxiter)
 
-def calculate_decrease_hellinger_distance(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,
+    for k in range(iteration_for_average):
+        change_count = 0
+        steps_to_zero = 0
+        iteration_to_zero = 0
+        rate_measure = 0
+
+        initial_vector, sparse_matrix = agent.create_initial_vector_and_sparse_matrix()
+        pmf_agent = agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        start_for_rate = hellinger_distance(pmf_environment, pmf_agent)
+        hellinger_distance_array= np.zeros(maxiter)
+        for j in range(maxiter):
+            agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, hellinger_distance_array, steps_to_zero_array = mutation(
+                agent, pmf_environment, hellinger_distance_array, change_count, steps_to_zero, mutation_rate,
+                start_for_rate, maxiter, j,
+                steps_to_zero_array)
+        average_count += change_count
+        av_it += iteration_to_zero
+        av_rate_measure += rate_measure
+        av_distance += hellinger_distance_array
+
+    return average_count, av_it, av_rate_measure, steps_to_zero_array, av_distance
+def calculate_decrease_hellinger_distance_mutation(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,
+                                          num_processes):
+    change_array = np.zeros(int(1 / d_mutation))
+    zero_array = np.zeros(int(1 / d_mutation))
+    iteration_to_zero_array = np.zeros(int(1 / d_mutation))
+    rate_array = np.zeros(int(1 / d_mutation))
+    hellinger_distance_stack =  np.zeros((maxiter, int(1 / d_mutation)))
+
+    for i in range(int(1 / d_mutation)):
+        mutation_rate = i / 20
+        r = 0.5  # the mutation rate
+        base = RBN(K, 6, r)
+        base2 = copy.deepcopy(base)
+        base.generate_logic_tables(0.7)
+        environment = base
+        agent = base2
+
+        F_array, diff_array = agent.compute_Fisher(d_r, num_T, threshold, num_processes)
+        max_I = np.argmax(F_array) * d_r
+        print("r at maximum Fisher information", max_I)
+        initial_vector, sparse_matrix = environment.create_initial_vector_and_sparse_matrix()
+        pmf_environment = environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+
+        average_count, av_it, av_rate_measure, steps_to_zero_array, av_distance = calculate_average_change(agent, pmf_environment,
+                                                                                              mutation_rate, maxiter,
+                                                                                              iteration_for_average)
+        change_array[i] = average_count
+        av_it /= iteration_for_average
+        av_rate_measure /= iteration_for_average
+        rate_array[i] = av_rate_measure
+        av_distance /= iteration_for_average
+        hellinger_distance_stack[:, i] = av_distance
+
+        iteration_to_zero_array[i] = av_it
+        if len(steps_to_zero_array) == 0:
+            zero_array[i] = 30
+        else:
+            zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
+    return change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack
+def calculate_decrease_hellinger_distance_r(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,
                                           num_processes):
     change_array = np.zeros(int(1 / d_r))
     zero_array = np.zeros(int(1 / d_r))
     iteration_to_zero_array = np.zeros(int(1 / d_r))
     rate_array = np.zeros(int(1 / d_r))
+    hellinger_distance_stack =  np.zeros((maxiter, int(1 / d_r)))
 
     for i in range(int(1 / d_r)):
         r = i / 20
@@ -475,55 +558,51 @@ def calculate_decrease_hellinger_distance(K, r, d_mutation, maxiter, iteration_f
         initial_vector, sparse_matrix = environment.create_initial_vector_and_sparse_matrix()
         pmf_environment = environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
 
-        average_count, av_it, av_rate_measure, steps_to_zero_array = calculate_average_change(agent, pmf_environment,
+        average_count, av_it, av_rate_measure, steps_to_zero_array, av_distance = calculate_average_change(agent, pmf_environment,
                                                                                               mutation_rate, maxiter,
                                                                                               iteration_for_average)
         change_array[i] = average_count
         av_it /= iteration_for_average
         av_rate_measure /= iteration_for_average
         rate_array[i] = av_rate_measure
+        av_distance /= iteration_for_average
+        hellinger_distance_stack[:, i] = av_distance
 
         iteration_to_zero_array[i] = av_it
         if len(steps_to_zero_array) == 0:
             zero_array[i] = 30
         else:
             zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
-    return change_array, zero_array, iteration_to_zero_array, rate_array
+    return change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack
 
+def convergence_plots_r(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
+    change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    for i in range(hellinger_distance_stack.shape[1]):
+        plt.plot(hellinger_distance_stack[:, i], label=f'r={i / 20}')  # customize the label as needed
 
-def calculate_average_change(agent, pmf_environment, mutation_rate, maxiter, iteration_for_average):
-    average_count = 0
-    steps_to_zero_array = np.zeros(0)
-    av_it = 0
-    av_rate_measure = 0
+    plt.xlabel('Step')
+    plt.ylabel('Hellinger Distance')
+    plt.title('Hellinger Distance per Step for Different r')
+    plt.legend(loc='best')  # shows the legend using best location
+    plt.show()
 
-    for k in range(iteration_for_average):
-        change_count = 0
-        steps_to_zero = 0
-        iteration_to_zero = 0
-        rate_measure = 0
+def convergence_plots_mutation(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
+    change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_mutation(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    for i in range(hellinger_distance_stack.shape[1]):
+        plt.plot(hellinger_distance_stack[:, i], label=f'mutation rate={i / 20}')  # customize the label as needed
 
-        initial_vector, sparse_matrix = agent.create_initial_vector_and_sparse_matrix()
-        pmf_agent = agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-        start_for_rate = hellinger_distance(pmf_environment, pmf_agent)
-        for j in range(maxiter):
-            agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, steps_to_zero_array = mutation(
-                agent, pmf_environment, change_count, steps_to_zero, mutation_rate, start_for_rate, maxiter, j,
-                steps_to_zero_array)
-        average_count += change_count
-        av_it += iteration_to_zero
-        av_rate_measure += rate_measure
-
-    return average_count, av_it, av_rate_measure, steps_to_zero_array
-
-
+    plt.xlabel('Step')
+    plt.ylabel('Hellinger Distance')
+    plt.title('Hellinger Distance per Step for Different Mutation Rate')
+    plt.legend(loc='best')  # shows the legend using best location
+    plt.show()
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
     r_and_mutation_stack = np.zeros((int(1 / d_r), int(1 / d_mutation)))
     for t in range(int(1/d_mutation)):
-        change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance(K, r, d_mutation,  maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+        change_array, zero_array, iteration_to_zero_array, rate_array, distance_per_r_stack = calculate_decrease_hellinger_distance_r(K, r, d_mutation,  maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+
         r_and_mutation_stack = np.column_stack((r_and_mutation_stack,rate_array))
     return r_and_mutation_stack
-
 
 def heatmap_r_mutation(r_and_mutation_stack,d_mutation, d_r):
     # plt.figure(figsize=(10,10)) # Adjust this size as needed
@@ -584,20 +663,34 @@ def plot_results(x_values, change_array, zero_array, iteration_to_zero_array, ra
     plt.tight_layout()
     plt.show()
 
+
+#def convergence():
+
+
+# how to do optimization over epochs?
+# By maybe taking the difference between the previous one and this one, and comparing it: how fast did this change go?
+# And I can plot this for multiple r and convergence rates? or for multiple mutation rates? I can do both?
+# lets start with the most straight forward one:
+#When Rick said something about this, I plotted decrease against different mutation rate.
+# Maybe that makes sense to do first: because when looking at r:
+# if the mutation rate is high, then initial r does not matter that much? But here, the heat map can help us as well :))
+# lets keep it simple, a step function is also okay!
+
 # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
 def main():
     # Set parameters for the RBN
     K = 4
 
-    N = 5
+    N = 6
     r = 0.6
     threshold = 0
-    d_r = 0.5
+    d_r = 0.1
+    d_mutation = 0.1
     num_T = 10
-    num_processes = 4
-    maxiter = 10
-    d_mutation = 0.5
+    num_processes = 10
+    maxiter = 300
     iteration_for_average = 5
+    #p = 0.5
 
 
     # change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T,
@@ -613,8 +706,15 @@ def main():
     #                                    num_processes)
     # x_values = np.linspace(0, 1, len(change_array))
     # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
-    r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold,num_processes)
-    heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
+
+    # r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold,num_processes)
+    # heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
+    convergence_plots_r(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,
+                        num_processes)
+    convergence_plots_mutation(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,
+                        num_processes)
+    # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
+    #Fisher_plot(d_r, num_T, threshold, num_processes, network)
 
 if __name__ == "__main__":
     main()
