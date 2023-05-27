@@ -451,23 +451,23 @@ def mutation(agent, pmf_environment, change_count, steps_to_zero, mutation_rate,
         agent = agent_new
 
     return agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, steps_to_zero_array
-def calculate_decrease_hellinger_distance(K, r, d_mutation,  maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
 
-    change_array = np.zeros(int(1/d_r))
-    zero_array = np.zeros(int(1/d_r))
-    iteration_to_zero_array = np.zeros(int(1/d_r))
-    rate_array = np.zeros(int(1/d_r))
 
-    for i in range(int(1/d_r)):
-        r = i/20
-        mutation_rate = 0.5 #the mutation rate
-        change_count = 0
+def calculate_decrease_hellinger_distance(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,
+                                          num_processes):
+    change_array = np.zeros(int(1 / d_r))
+    zero_array = np.zeros(int(1 / d_r))
+    iteration_to_zero_array = np.zeros(int(1 / d_r))
+    rate_array = np.zeros(int(1 / d_r))
+
+    for i in range(int(1 / d_r)):
+        r = i / 20
+        mutation_rate = 0.5  # the mutation rate
         base = RBN(K, 6, r)
         base2 = copy.deepcopy(base)
         base.generate_logic_tables(0.7)
         environment = base
         agent = base2
-
 
         F_array, diff_array = agent.compute_Fisher(d_r, num_T, threshold, num_processes)
         max_I = np.argmax(F_array) * d_r
@@ -475,26 +475,9 @@ def calculate_decrease_hellinger_distance(K, r, d_mutation,  maxiter, iteration_
         initial_vector, sparse_matrix = environment.create_initial_vector_and_sparse_matrix()
         pmf_environment = environment.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
 
-        average_count = 0
-        steps_to_zero_array = np.zeros(0)
-        av_it = 0
-        av_rate_measure = 0
-        iteration_for_average = 20
-        for k in range(iteration_for_average):
-            change_count = 0
-            steps_to_zero = 0
-            iteration_to_zero = 0
-            rate_measure = 0
-
-            initial_vector, sparse_matrix = agent.create_initial_vector_and_sparse_matrix()
-            pmf_agent = agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-            start_for_rate = hellinger_distance(pmf_environment, pmf_agent)
-            for j in range(maxiter):
-                agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, steps_to_zero_array = mutation(agent, pmf_environment, change_count, steps_to_zero, mutation_rate, start_for_rate, maxiter, j, steps_to_zero_array)
-            average_count += change_count
-            av_it += iteration_to_zero
-            av_rate_measure += rate_measure
-        average_count /= iteration_for_average
+        average_count, av_it, av_rate_measure, steps_to_zero_array = calculate_average_change(agent, pmf_environment,
+                                                                                              mutation_rate, maxiter,
+                                                                                              iteration_for_average)
         change_array[i] = average_count
         av_it /= iteration_for_average
         av_rate_measure /= iteration_for_average
@@ -506,6 +489,33 @@ def calculate_decrease_hellinger_distance(K, r, d_mutation,  maxiter, iteration_
         else:
             zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
     return change_array, zero_array, iteration_to_zero_array, rate_array
+
+
+def calculate_average_change(agent, pmf_environment, mutation_rate, maxiter, iteration_for_average):
+    average_count = 0
+    steps_to_zero_array = np.zeros(0)
+    av_it = 0
+    av_rate_measure = 0
+
+    for k in range(iteration_for_average):
+        change_count = 0
+        steps_to_zero = 0
+        iteration_to_zero = 0
+        rate_measure = 0
+
+        initial_vector, sparse_matrix = agent.create_initial_vector_and_sparse_matrix()
+        pmf_agent = agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        start_for_rate = hellinger_distance(pmf_environment, pmf_agent)
+        for j in range(maxiter):
+            agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, steps_to_zero_array = mutation(
+                agent, pmf_environment, change_count, steps_to_zero, mutation_rate, start_for_rate, maxiter, j,
+                steps_to_zero_array)
+        average_count += change_count
+        av_it += iteration_to_zero
+        av_rate_measure += rate_measure
+
+    return average_count, av_it, av_rate_measure, steps_to_zero_array
+
 
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
     r_and_mutation_stack = np.zeros((int(1 / d_r), int(1 / d_mutation)))
