@@ -694,8 +694,8 @@ def main():
     r = 0.6
     mutation_rate = 0.2
     threshold = 0
-    d_r = 0.5
-    d_mutation = 0.5
+    d_r = 0.2
+    d_mutation = 0.2
     num_T = 2
     num_processes = 10
     maxiter = 2
