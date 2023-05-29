@@ -504,15 +504,18 @@ def calculate_average_change(agent, pmf_environment, mutation_rate, maxiter, ite
     av_it = 0
     av_rate_measure = 0
     av_distance = np.zeros(maxiter)
+    initial_vector, sparse_matrix = agent.create_initial_vector_and_sparse_matrix()
+    pmf_agent = agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+    pmf_agent_invariant = pmf_agent
+    agent_invariant = agent
 
     for k in range(iteration_for_average):
         change_count = 0
         steps_to_zero = 0
         iteration_to_zero = 0
         rate_measure = 0
-
-        initial_vector, sparse_matrix = agent.create_initial_vector_and_sparse_matrix()
-        pmf_agent = agent.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
+        pmf_agent = pmf_agent_invariant
+        agent = agent_invariant
         start_for_rate = hellinger_distance(pmf_environment, pmf_agent)
         hellinger_distance_array= np.zeros(maxiter)
         for j in range(maxiter):
@@ -585,19 +588,26 @@ def calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_envi
 
 def convergence_plots_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
     change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    max_val = float((hellinger_distance_stack.shape[1] - 1) * d_r)
+
     for i in range(hellinger_distance_stack.shape[1]):
-        plt.plot(hellinger_distance_stack[:, i], label=f'r={i / 20}')  # customize the label as needed
+        normalized_val = float(i) * d_r / max_val
+        steps = np.arange(hellinger_distance_stack.shape[0])
+        plt.plot(steps, hellinger_distance_stack[:, i], label=f'r={normalized_val:.2f}')
 
     plt.xlabel('Step')
     plt.ylabel('Hellinger Distance')
     plt.title('Hellinger Distance per Step for Different r')
-    plt.legend(loc='best')  # shows the legend using best location
+    plt.legend(loc='best')  # shows the legend using the best location
     plt.show()
-
 def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
     change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    max_val = (hellinger_distance_stack.shape[1] - 1) * d_mutation
+
     for i in range(hellinger_distance_stack.shape[1]):
-        plt.plot(hellinger_distance_stack[:, i], label=f'mutation rate={i / 20}')  # customize the label as needed
+        normalized_val = float(i) * d_mutation / max_val
+        steps = np.arange(hellinger_distance_stack.shape[0])
+        plt.plot(steps, hellinger_distance_stack[:, i], label=f'r={normalized_val:.2f}')
 
     plt.xlabel('Step')
     plt.ylabel('Hellinger Distance')
@@ -605,65 +615,97 @@ def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mu
     plt.legend(loc='best')  # shows the legend using best location
     plt.show()
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
-    r_and_mutation_stack = np.zeros((int(1 / d_r), int(1 / d_mutation)))
+    r_and_mutation_stack = np.empty((int(1 / d_r), 0))
     for t in range(int(1/d_mutation)):
         change_array, zero_array, iteration_to_zero_array, rate_array, distance_per_r_stack = calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_environment, d_mutation,  maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
 
-        r_and_mutation_stack = np.column_stack((r_and_mutation_stack,rate_array))
+        r_and_mutation_stack = np.column_stack((r_and_mutation_stack, rate_array))
+        print(r_and_mutation_stack)
     return r_and_mutation_stack
 
-def heatmap_r_mutation(r_and_mutation_stack,d_mutation, d_r):
-    # plt.figure(figsize=(10,10)) # Adjust this size as needed
-    # x_labels = np.around(np.arange(0, 1, d_mutation), decimals=2)
-    # y_labels = np.around(np.arange(0, 1, d_r), decimals=2)
-    # # Create the heatmap
-    # ax = sns.heatmap(r_and_mutation_stack, cmap='hot',xticklabels=x_labels, yticklabels=y_labels)
-    #
-    # ax.set_xlabel("Mutation values")
-    # ax.set_ylabel("R values")
-    # plt.show()
-    # plt.style.use("seaborn")
 
-    # 2. Generate a 10x10 random integer matrix
+def heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r):
+    # Create a list of r values and mutation rates
+    r_values = np.linspace(0, 1, int(1 / d_r) + 1)
+    mutation_rates = np.linspace(0, 1, int(1 / d_mutation) + 1)
+
     data = r_and_mutation_stack
     print("Our dataset is : ", data)
 
-    # 3. Plot the heatmap
-    plt.figure(figsize=(int(1/d_r), int(1/d_mutation)))
-    heat_map = sns.heatmap(data, linewidth=1, annot=True)
+    # Define the size of the figure
+    plt.figure(figsize=(10, 8))
+
+    # Create the heatmap using seaborn
+    heat_map = sns.heatmap(data, cmap='viridis', linewidth=1, annot=True,
+                           xticklabels=mutation_rates, yticklabels=r_values)
+
     plt.title("HeatMap using Seaborn Method")
     plt.xlabel("Mutation values")
     plt.ylabel("R values")
     plt.show()
 
 
-def plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array):
+def plot_results_r(x_values, change_array, zero_array, iteration_to_zero_array, rate_array):
     plt.figure(figsize=(10, 8))
 
     plt.subplot(2, 2, 1)
     plt.plot(x_values, change_array, marker='o', linestyle='-')
-    plt.xlabel('x values')
+    plt.xlabel('r values')
     plt.ylabel('Change in Hellinger distance')
     plt.title('Change in Hellinger distance over steps')
     plt.grid(True)
 
     plt.subplot(2, 2, 2)
     plt.plot(x_values, zero_array, marker='o', linestyle='-')
-    plt.xlabel('x values')
+    plt.xlabel('r values')
     plt.ylabel('zero values')
     plt.title('The number of steps it takes to get to 0 (values of agents that do not reach 0 are set to 30)')
     plt.grid(True)
 #
     plt.subplot(2, 2, 3)
     plt.plot(x_values, iteration_to_zero_array, marker='o', linestyle='-')
-    plt.xlabel('x values')
+    plt.xlabel('r values')
     plt.ylabel('iteration to zero values')
     plt.title('Number of iterations before reaching a Hellinger distance of 0')
     plt.grid(True)
 
     plt.subplot(2, 2, 4)
     plt.plot(x_values, rate_array, marker='o', linestyle='-')
-    plt.xlabel('x values')
+    plt.xlabel('r values')
+    plt.ylabel('rate values')
+    plt.title('the rate of going to a Hellinger distance of 0')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_results_mutation(x_values, change_array, zero_array, iteration_to_zero_array, rate_array):
+    plt.figure(figsize=(10, 8))
+
+    plt.subplot(2, 2, 1)
+    plt.plot(x_values, change_array, marker='o', linestyle='-')
+    plt.xlabel('mutation rate')
+    plt.ylabel('Change in Hellinger distance')
+    plt.title('Change in Hellinger distance over steps')
+    plt.grid(True)
+
+    plt.subplot(2, 2, 2)
+    plt.plot(x_values, zero_array, marker='o', linestyle='-')
+    plt.xlabel('mutation rate')
+    plt.ylabel('zero values')
+    plt.title('The number of steps it takes to get to 0 (values of agents that do not reach 0 are set to 30)')
+    plt.grid(True)
+#
+    plt.subplot(2, 2, 3)
+    plt.plot(x_values, iteration_to_zero_array, marker='o', linestyle='-')
+    plt.xlabel('mutation rate')
+    plt.ylabel('iteration to zero values')
+    plt.title('Number of iterations before reaching a Hellinger distance of 0')
+    plt.grid(True)
+
+    plt.subplot(2, 2, 4)
+    plt.plot(x_values, rate_array, marker='o', linestyle='-')
+    plt.xlabel('mutation rate')
     plt.ylabel('rate values')
     plt.title('the rate of going to a Hellinger distance of 0')
     plt.grid(True)
@@ -694,11 +736,11 @@ def main():
     r = 0.6
     mutation_rate = 0.2
     threshold = 0
-    d_r = 0.2
-    d_mutation = 0.2
+    d_r = 0.5
+    d_mutation = 0.5
     num_T = 2
     num_processes = 10
-    maxiter = 2
+    maxiter = 4
     iteration_for_average = 5
     #p = 0.5
 
@@ -717,11 +759,13 @@ def main():
     # x_values = np.linspace(0, 1, len(change_array))
     # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
 
-    # r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold,num_processes)
-    # heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
+    r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes)
+
+    heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
     #
-    convergence_plots_r(K, r, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
-    convergence_plots_mutation(K, r, mutation_rate,N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+
+    #convergence_plots_r(K, r, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    #convergence_plots_mutation(K, r, mutation_rate,N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     #
     # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
     #Fisher_plot(d_r, num_T, threshold, num_processes, network)
