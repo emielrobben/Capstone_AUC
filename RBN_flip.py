@@ -781,9 +781,9 @@ def main():
     # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
     #
     #
-    change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance_r(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold, num_processes)
-    x_values = np.linspace(0, 1, len(change_array))
-    plot_results_r(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
+    # change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance_r(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold, num_processes)
+    # x_values = np.linspace(0, 1, len(change_array))
+    # plot_results_r(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
     # change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_Hellinger_per_r(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold,
     #                                    num_processes)
     # x_values = np.linspace(0, 1, len(change_array))
@@ -794,7 +794,7 @@ def main():
     #heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
     #
 
-    #convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     #convergence_plots_mutation(K, r, mutation_rate,N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     #
     # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
