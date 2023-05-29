@@ -653,7 +653,7 @@ def plot_results(x_values, change_array, zero_array, iteration_to_zero_array, ra
     plt.ylabel('zero values')
     plt.title('The number of steps it takes to get to 0 (values of agents that do not reach 0 are set to 30)')
     plt.grid(True)
-
+#
     plt.subplot(2, 2, 3)
     plt.plot(x_values, iteration_to_zero_array, marker='o', linestyle='-')
     plt.xlabel('x values')
