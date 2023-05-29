@@ -557,6 +557,35 @@ def calculate_decrease_hellinger_distance_mutation(K, r, mutation_rate, N_agent,
         else:
             zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
     return change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack
+#This function exists to calculate the hellinger distance for different environments and agents, with the goal of finding
+# the different convergence rates when starting at different initial hellinger distances.
+def calculate_decrease_hellinger_distance_r_multi(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,num_processes):
+    change_array = np.zeros(iterations_convergence)
+    zero_array = np.zeros(iterations_convergence)
+    iteration_to_zero_array = np.zeros(iterations_convergence)
+    rate_array = np.zeros(iterations_convergence)
+    hellinger_distance_stack = np.zeros((maxiter, iterations_convergence))
+
+    for i in range(iterations_convergence):
+        pmf_environment, pmf_agent, agent = create_agent_and_environment(K, N_agent, N_environment, r, d_r, num_T, threshold,
+                                                                  num_processes)
+
+        average_count, av_it, av_rate_measure, steps_to_zero_array, av_distance = calculate_average_change(agent, pmf_environment,
+                                                                                              mutation_rate, maxiter,
+                                                                                              iteration_for_average)
+        change_array[i] = average_count
+        av_it /= iteration_for_average
+        av_rate_measure /= iteration_for_average
+        rate_array[i] = av_rate_measure
+        av_distance /= iteration_for_average
+        hellinger_distance_stack[:, i] = av_distance
+
+        iteration_to_zero_array[i] = av_it
+        if len(steps_to_zero_array) == 0:
+            zero_array[i] = 30
+        else:
+            zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
+    return change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack
 def calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,num_processes):
     change_array = np.zeros(int(1 / d_r))
     zero_array = np.zeros(int(1 / d_r))
@@ -586,8 +615,8 @@ def calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_envi
             zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
     return change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack
 
-def convergence_plots_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
-    change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+def convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
+    change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r_multi(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     max_val = float((hellinger_distance_stack.shape[1] - 1) * d_r)
 
     for i in range(hellinger_distance_stack.shape[1]):
@@ -734,15 +763,16 @@ def main():
     N_agent = 3
     N_environment = 4
     r = 0.6
-    mutation_rate = 0.2
+    mutation_rate = 0.5
     threshold = 0
     d_r = 0.5
     d_mutation = 0.5
     num_T = 2
-    num_processes = 10
+    num_processes = 2
     maxiter = 4
-    iteration_for_average = 5
+    iteration_for_average = 2
     #p = 0.5
+    iterations_convergence = 2
 
 
     # change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance(K, r, d_mutation, maxiter, iteration_for_average, d_r, num_T,
@@ -751,20 +781,20 @@ def main():
     # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
     #
     #
-    # change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_Hellinger_per_r(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold, num_processes)
-    # x_values = np.linspace(0, 1, len(change_array))
-    # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
+    change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_hellinger_distance_r(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold, num_processes)
+    x_values = np.linspace(0, 1, len(change_array))
+    plot_results_r(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
     # change_array, zero_array, iteration_to_zero_array, rate_array = calculate_decrease_Hellinger_per_r(K, r, maxiter, iteration_for_average, d_r, d_mutation, num_T, threshold,
     #                                    num_processes)
     # x_values = np.linspace(0, 1, len(change_array))
     # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
 
-    r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes)
+    #r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes)
 
-    heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
+    #heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
     #
 
-    #convergence_plots_r(K, r, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    #convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     #convergence_plots_mutation(K, r, mutation_rate,N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     #
     # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
