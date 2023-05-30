@@ -82,6 +82,28 @@ class RBN:
         # Assign a random state to each node
         for i in range(self.N):
             self.G.nodes[i]["state"] = random.choice([True, False])
+
+    def expand_network(self, N_diff):
+        new_node_index = self.N  # Index for new nodes starts from the existing number of nodes
+        for _ in range(N_diff):
+            # Create new nodes and randomly connect them to old nodes
+            self.G.add_node(new_node_index, state=random.choice([True, False]))
+            old_node = random.choice(range(self.N))  # Randomly select an old node
+            self.G.add_edge(new_node_index, old_node)
+
+            # Randomly connect new nodes to each other but not to themselves
+            for other_new_node_index in range(self.N, new_node_index):
+                if random.random() < 0.5:  # 50% chance to create an edge
+                    self.G.add_edge(new_node_index, other_new_node_index)
+                if random.random() >= 0.5:  # 50% chance to create an edge
+                    self.G.add_edge(other_new_node_index, new_node_index)
+            new_node_index += 1
+
+        self.N += N_diff  # Update total number of nodes
+
+        # Generate and modify logic tables for all nodes, as this has changed with the addition of new edges
+        self.generate_logic_tables(self.r)
+
     # This method generates logic tables for all nodes in the network.
     def generate_logic_tables(self, r):
         for i in self.G.nodes:
@@ -253,6 +275,9 @@ class RBN:
 
         F_array[-1] = 0
         return F_array, diff_array
+
+
+
 # This function plots Fisher information and difference in PMF as a function of x values.
 def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     # Calculate Fisher information array
@@ -445,7 +470,9 @@ def create_agent_and_environment(K, N_agent, N_environment, r, d_r, num_T, thres
 
     # Create the agent and the environment
     agent = RBN(K, N_agent, r)
-    environment = RBN(K, N_environment, r)
+    environment = copy.deepcopy(agent)
+    N_diff = abs(N_environment - N_agent)
+    environment.expand_network(N_diff)
 
     # Compute Fisher information
     F_array, diff_array = agent.compute_Fisher(d_r, num_T, threshold, num_processes)
@@ -789,8 +816,8 @@ def main():
     # x_values = np.linspace(0, 1, len(change_array))
     # plot_results(x_values, change_array, zero_array, iteration_to_zero_array, rate_array)
 
-    r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes)
-    heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
+    #r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes)
+    #heatmap_r_mutation(r_and_mutation_stack, d_mutation,d_r)
     #
 
     convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
@@ -800,7 +827,9 @@ def main():
     #Fisher_plot(d_r, num_T, threshold, num_processes, network)
 
 
-
+    #What could be done is in the function where the environmemt is made:
+    # create a copy of the environment
+    #then call a function: "environment.create_extra(N_diff)
 
 if __name__ == "__main__":
     main()
