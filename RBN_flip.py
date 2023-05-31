@@ -782,7 +782,7 @@ def main():
     d_mutation = 0.1
     num_T = 5
     num_processes = 5
-    maxiter = 50
+    maxiter = 1200
     iteration_for_average = 5
     #p = 0.5
     iterations_convergence = 5
