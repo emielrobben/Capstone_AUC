@@ -351,7 +351,7 @@ def convergence(num_T, N, network,r):
     plt.grid(True)
     plt.show()
 # This function plots PMF for two scenarios side by side for visual comparison.
-def pmf_barplot(network, r, num_T, d_r, ):
+def pmf_barplot(network, r, num_T, d_r):
  # the upgraded bar plot with 2**N  times two bars
 
     args = (network, r, num_T)
@@ -477,7 +477,7 @@ def create_agent_and_environment(K, N_agent, N_environment, r, d_r, num_T, thres
     # Compute Fisher information
     F_array, diff_array = agent.compute_Fisher(d_r, num_T, threshold, num_processes)
     max_I = np.argmax(F_array) * d_r
-    print("r at maximum Fisher information", max_I)
+    #print("r at maximum Fisher information", max_I)
 
     # Find the stationary distribution for the agent
     initial_vector, sparse_matrix = agent.create_initial_vector_and_sparse_matrix()
@@ -513,7 +513,7 @@ def mutation(agent, pmf_environment, hellinger_distance_array, change_count, ste
     rate_measure = (last_rate - start_for_rate) / maxiter
     hellinger_distance_array[j] = hellinger_distance(pmf_environment, pmf_agent_old)
     if hellinger_distance(pmf_environment, pmf_agent) < hellinger_distance(pmf_environment, pmf_agent_old):
-        print("Smaller Hellinger distance:", hellinger_distance(pmf_environment, pmf_agent))
+        #print("Smaller Hellinger distance:", hellinger_distance(pmf_environment, pmf_agent))
         change_count += 1
         steps_to_zero += 1
         last_rate = hellinger_distance(pmf_environment, pmf_agent)
@@ -807,10 +807,9 @@ def main():
     #
 
     convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
-    #convergence_plots_mutation(K, r, mutation_rate,N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    convergence_plots_mutation(K, r, mutation_rate,N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     #
-    # Create an instance of the RBN class with 4 inputs per node, 10 nodes, and r=0.6 K= 6
-    #Fisher_plot(d_r, num_T, threshold, num_processes, network)
+
 
 
     #What could be done is in the function where the environmemt is made:
