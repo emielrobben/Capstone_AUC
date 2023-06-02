@@ -133,7 +133,7 @@ class RBN:
             bin_list[self.N - len(binary_repr) + i] = bool(int(binary_repr[i]))
 
         return bin_list
-
+    # not used at the moment, but can be handy for
     def bin_to_bin_str(self, bin_list):
         bin_str = ''.join(['1' if b else '0' for b in bin_list])
         return bin_str
