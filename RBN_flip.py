@@ -522,7 +522,7 @@ def mutation(agent, pmf_environment, hellinger_distance_array, change_count, ste
             iteration_to_zero = j
             rate_measure = (last_rate - start_for_rate) / j if j != 0 else 0
         agent = agent_new
-#
+
     return agent, change_count, steps_to_zero, last_rate, iteration_to_zero, rate_measure, hellinger_distance_array, steps_to_zero_array
 
 def calculate_average_change(agent, pmf_environment, mutation_rate, maxiter, iteration_for_average):
