@@ -116,9 +116,24 @@ class RBN:
     def modify_logic_tables(self, increment_prob):
         for i in self.G.nodes:
             truth_table = self.G.nodes[i]["truth_table"]
-            for j in range(len(truth_table)):
-                if random.random() < increment_prob:
-                    truth_table[j] = not truth_table[j]
+            num_zeros = truth_table.count(False)
+            num_ones = truth_table.count(True)
+
+            zeros_to_flip = round(num_zeros * increment_prob)
+            ones_to_flip = round(num_ones * increment_prob)
+
+            # flip zeros
+            zero_indices = [j for j, x in enumerate(truth_table) if x == False]
+            random.shuffle(zero_indices)
+            for idx in zero_indices[:zeros_to_flip]:
+                truth_table[idx] = not truth_table[idx]
+
+            # flip ones
+            one_indices = [j for j, x in enumerate(truth_table) if x == True]
+            random.shuffle(one_indices)
+            for idx in one_indices[:ones_to_flip]:
+                truth_table[idx] = not truth_table[idx]
+
             self.G.nodes[i]["truth_table"] = truth_table
 
     # Helper functions to convert from binary to decimal and vice versa.
@@ -881,7 +896,7 @@ def main():
     d_mutation = 0.1
     num_T = 5
     num_processes = 5
-    maxiter = 20
+    maxiter = 200
     iteration_for_average = 5
     #p = 0.5
     iterations_convergence = 5
