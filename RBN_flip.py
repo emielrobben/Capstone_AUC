@@ -113,26 +113,56 @@ class RBN:
             self.G.nodes[i]["truth_table"] = truth_table
 
     # This method modifies the logic tables, toggling the state of a node with a given probability.
-    def modify_logic_tables(self, increment_prob):
+    # def modify_logic_tables(self, increment_prob):
+    #     for i in self.G.nodes:
+    #         truth_table = self.G.nodes[i]["truth_table"]
+    #         num_zeros = truth_table.count(False)
+    #         num_ones = truth_table.count(True)
+    #
+    #         zeros_to_flip = round(num_zeros * increment_prob)
+    #         ones_to_flip = round(num_ones * increment_prob)
+    #
+    #         # flip zeros
+    #         zero_indices = [j for j, x in enumerate(truth_table) if x == False]
+    #         random.shuffle(zero_indices)
+    #         for idx in zero_indices[:zeros_to_flip]:
+    #             truth_table[idx] = not truth_table[idx]
+    #
+    #         # flip ones
+    #         one_indices = [j for j, x in enumerate(truth_table) if x == True]
+    #         random.shuffle(one_indices)
+    #         for idx in one_indices[:ones_to_flip]:
+    #             truth_table[idx] = not truth_table[idx]
+    #
+    #         self.G.nodes[i]["truth_table"] = truth_table
+
+    def modify_logic_tables(self, increment_prob, r):
         for i in self.G.nodes:
             truth_table = self.G.nodes[i]["truth_table"]
-            num_zeros = truth_table.count(False)
-            num_ones = truth_table.count(True)
+            count_0 = truth_table.count(0)
+            count_1 = truth_table.count(1)
 
-            zeros_to_flip = round(num_zeros * increment_prob)
-            ones_to_flip = round(num_ones * increment_prob)
+            # Check if the desired r is achievable
+            if r > count_1 / (count_0 + count_1):
+                # If not, fallback to flipping bits randomly
+                for j in range(len(truth_table)):
+                    if random.random() < increment_prob:
+                        truth_table[j] = not truth_table[j]
+            else:
+                # Calculate the number of bits to flip
+                n_to_flip = int(len(truth_table) * increment_prob)
+                n_0_to_flip = int(n_to_flip * r)
+                n_1_to_flip = n_to_flip - n_0_to_flip
 
-            # flip zeros
-            zero_indices = [j for j, x in enumerate(truth_table) if x == False]
-            random.shuffle(zero_indices)
-            for idx in zero_indices[:zeros_to_flip]:
-                truth_table[idx] = not truth_table[idx]
+                # Randomly select bits to flip
+                to_flip_0 = random.sample([i for i, bit in enumerate(truth_table) if bit == 0], n_0_to_flip)
+                to_flip_1 = random.sample([i for i, bit in enumerate(truth_table) if bit == 1], n_1_to_flip)
 
-            # flip ones
-            one_indices = [j for j, x in enumerate(truth_table) if x == True]
-            random.shuffle(one_indices)
-            for idx in one_indices[:ones_to_flip]:
-                truth_table[idx] = not truth_table[idx]
+                # Flip the selected bits
+                for j in to_flip_0:
+                    truth_table[j] = 1
+                for j in to_flip_1:
+                    truth_table[j] = 0
 
             self.G.nodes[i]["truth_table"] = truth_table
 
