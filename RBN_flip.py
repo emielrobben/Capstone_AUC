@@ -649,6 +649,9 @@ def calculate_average_change(agent, pmf_environment, mutation_rate, maxiter, ite
         av_rate_measure += rate_measure
         av_distance += hellinger_distance_array
 
+    return average_count, av_it, av_rate_measure, steps_to_zero_array, av_distance
+
+
 
 def calculate_average_change_multi_initial(K, N_agent, N_environment, r, d_r, num_T,threshold,num_processes, mutation_rate, maxiter, iteration_for_average):
     average_count = 0
@@ -851,10 +854,9 @@ def heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r):
     plt.ylabel("R values")
     plt.show()
 
-def plot_results_r(x_values, rate_array):
+def plot_results_r(r_values, rate_array):
     plt.figure(figsize=(5, 4))
-
-    plt.plot(x_values, rate_array, marker='o', linestyle='-')
+    plt.plot(r_values, rate_array, marker='o', linestyle='-')
     plt.xlabel('r values')
     plt.ylabel('rate values')
     plt.title('the rate of going to a Hellinger distance of 0')
@@ -863,10 +865,10 @@ def plot_results_r(x_values, rate_array):
     plt.tight_layout()
     plt.show()
 
-def plot_results_mutation(x_values, rate_array):
+def plot_results_mutation(mutation_values, rate_array):
     plt.figure(figsize=(5, 4))
 
-    plt.plot(x_values, rate_array, marker='o', linestyle='-')
+    plt.plot(mutation_values, rate_array, marker='o', linestyle='-')
     plt.xlabel('mutation rate')
     plt.ylabel('rate values')
     plt.title('the rate of going to a Hellinger distance of 0')
@@ -885,17 +887,17 @@ def main():
     r = 0.5
     mutation_rate = 0.5
     threshold = 0
-    d_r = 0.1
-    d_mutation = 0.1
+    d_r = 0.5
+    d_mutation = 0.5
     num_T = 5
     num_processes = 5
-    maxiter = 200
+    maxiter = 10
     iteration_for_average = 5
     #p = 0.5
     iterations_convergence = 5
 
-    convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation, maxiter,
-                            iteration_for_average, d_r, num_T, threshold, num_processes)
+
+
 
 
 if __name__ == "__main__":
