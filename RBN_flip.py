@@ -115,7 +115,11 @@ class RBN:
     #This method modifies the logic tables, toggling the state of a node with a given probability.
     def modify_logic_tables(self, increment_prob):
         for i in self.G.nodes:
-            truth_table = self.G.nodes[i]["truth_table"]
+            truth_table = self.G.nodes[i].get("truth_table")
+            if truth_table is None:
+                print(f"Skipping node {i} because it has no truth_table")
+                continue
+
             num_zeros = truth_table.count(False)
             num_ones = truth_table.count(True)
 
@@ -135,7 +139,6 @@ class RBN:
                 truth_table[idx] = not truth_table[idx]
 
             self.G.nodes[i]["truth_table"] = truth_table
-
     import random
 
     # def modify_logic_tables(self, increment_prob):
@@ -887,18 +890,18 @@ def main():
     r = 0.5
     mutation_rate = 0.5
     threshold = 0
-    d_r = 0.5
-    d_mutation = 0.5
+    d_r = 0.2
+    d_mutation = 0.2
     num_T = 5
     num_processes = 5
     maxiter = 10
     iteration_for_average = 5
     #p = 0.5
     iterations_convergence = 5
-    change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,num_processes)
-
-    r_values = np.linspace(0, 1, len(change_array))
-    plot_results_r(r_values, rate_array)
+    # change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,num_processes)
+    #
+    # r_values = np.linspace(0, 1, len(change_array))
+    # plot_results_r(r_values, rate_array)
 
     change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter,
                                                    iteration_for_average, d_r, num_T, threshold,
