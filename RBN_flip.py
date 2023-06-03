@@ -895,9 +895,16 @@ def main():
     iteration_for_average = 5
     #p = 0.5
     iterations_convergence = 5
+    change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,num_processes)
 
+    r_values = np.linspace(0, 1, len(change_array))
+    plot_results_r(r_values, rate_array)
 
-
+    change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter,
+                                                   iteration_for_average, d_r, num_T, threshold,
+                                                   num_processes)
+    mutation_values = np.linspace(0, 1, len(change_array))
+    plot_results_mutation(mutation_values, rate_array)
 
 
 if __name__ == "__main__":
