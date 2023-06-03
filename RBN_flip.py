@@ -112,59 +112,66 @@ class RBN:
             self.G.nodes[i]["inputs"] = inputs
             self.G.nodes[i]["truth_table"] = truth_table
 
-    # This method modifies the logic tables, toggling the state of a node with a given probability.
+    #This method modifies the logic tables, toggling the state of a node with a given probability.
+    def modify_logic_tables(self, increment_prob):
+        for i in self.G.nodes:
+            truth_table = self.G.nodes[i]["truth_table"]
+            num_zeros = truth_table.count(False)
+            num_ones = truth_table.count(True)
+
+            zeros_to_flip = round(num_zeros * increment_prob)
+            ones_to_flip = round(num_ones * increment_prob)
+
+            # flip zeros
+            zero_indices = [j for j, x in enumerate(truth_table) if x == False]
+            random.shuffle(zero_indices)
+            for idx in zero_indices[:zeros_to_flip]:
+                truth_table[idx] = not truth_table[idx]
+
+            # flip ones
+            one_indices = [j for j, x in enumerate(truth_table) if x == True]
+            random.shuffle(one_indices)
+            for idx in one_indices[:ones_to_flip]:
+                truth_table[idx] = not truth_table[idx]
+
+            self.G.nodes[i]["truth_table"] = truth_table
+
+    import random
+
     # def modify_logic_tables(self, increment_prob):
     #     for i in self.G.nodes:
     #         truth_table = self.G.nodes[i]["truth_table"]
-    #         num_zeros = truth_table.count(False)
-    #         num_ones = truth_table.count(True)
     #
-    #         zeros_to_flip = round(num_zeros * increment_prob)
-    #         ones_to_flip = round(num_ones * increment_prob)
+    #         # Count the number of 0s and 1s in the truth table
+    #         count_0 = truth_table.count(0)
+    #         count_1 = truth_table.count(1)
     #
-    #         # flip zeros
-    #         zero_indices = [j for j, x in enumerate(truth_table) if x == False]
-    #         random.shuffle(zero_indices)
-    #         for idx in zero_indices[:zeros_to_flip]:
-    #             truth_table[idx] = not truth_table[idx]
+    #         # Compute the ratio r of 0s to total elements
+    #         r = count_0 / len(truth_table)
     #
-    #         # flip ones
-    #         one_indices = [j for j, x in enumerate(truth_table) if x == True]
-    #         random.shuffle(one_indices)
-    #         for idx in one_indices[:ones_to_flip]:
-    #             truth_table[idx] = not truth_table[idx]
+    #         # Check if the desired r is achievable
+    #         if r > count_1 / (count_0 + count_1):
+    #             # If not, fallback to flipping bits randomly
+    #             for j in range(len(truth_table)):
+    #                 if random.random() < increment_prob:
+    #                     truth_table[j] = not truth_table[j]
+    #         else:
+    #             # Calculate the number of bits to flip
+    #             n_to_flip = int(len(truth_table) * increment_prob)
+    #             n_0_to_flip = int(n_to_flip * r)
+    #             n_1_to_flip = n_to_flip - n_0_to_flip
+    #
+    #             # Randomly select bits to flip
+    #             to_flip_0 = random.sample([i for i, bit in enumerate(truth_table) if bit == 0], n_0_to_flip)
+    #             to_flip_1 = random.sample([i for i, bit in enumerate(truth_table) if bit == 1], n_1_to_flip)
+    #
+    #             # Flip the selected bits
+    #             for j in to_flip_0:
+    #                 truth_table[j] = 1
+    #             for j in to_flip_1:
+    #                 truth_table[j] = 0
     #
     #         self.G.nodes[i]["truth_table"] = truth_table
-
-    def modify_logic_tables(self, increment_prob, r):
-        for i in self.G.nodes:
-            truth_table = self.G.nodes[i]["truth_table"]
-            count_0 = truth_table.count(0)
-            count_1 = truth_table.count(1)
-
-            # Check if the desired r is achievable
-            if r > count_1 / (count_0 + count_1):
-                # If not, fallback to flipping bits randomly
-                for j in range(len(truth_table)):
-                    if random.random() < increment_prob:
-                        truth_table[j] = not truth_table[j]
-            else:
-                # Calculate the number of bits to flip
-                n_to_flip = int(len(truth_table) * increment_prob)
-                n_0_to_flip = int(n_to_flip * r)
-                n_1_to_flip = n_to_flip - n_0_to_flip
-
-                # Randomly select bits to flip
-                to_flip_0 = random.sample([i for i, bit in enumerate(truth_table) if bit == 0], n_0_to_flip)
-                to_flip_1 = random.sample([i for i, bit in enumerate(truth_table) if bit == 1], n_1_to_flip)
-
-                # Flip the selected bits
-                for j in to_flip_0:
-                    truth_table[j] = 1
-                for j in to_flip_1:
-                    truth_table[j] = 0
-
-            self.G.nodes[i]["truth_table"] = truth_table
 
     # Helper functions to convert from binary to decimal and vice versa.
     def bin_to_dec(self, bin_list):
@@ -844,32 +851,9 @@ def heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r):
     plt.ylabel("R values")
     plt.show()
 
+def plot_results_r(x_values, rate_array):
+    plt.figure(figsize=(5, 4))
 
-def plot_results_r(x_values, change_array, zero_array, iteration_to_zero_array, rate_array):
-    plt.figure(figsize=(10, 8))
-
-    plt.subplot(2, 2, 1)
-    plt.plot(x_values, change_array, marker='o', linestyle='-')
-    plt.xlabel('r values')
-    plt.ylabel('Change in Hellinger distance')
-    plt.title('Change in Hellinger distance over steps')
-    plt.grid(True)
-
-    plt.subplot(2, 2, 2)
-    plt.plot(x_values, zero_array, marker='o', linestyle='-')
-    plt.xlabel('r values')
-    plt.ylabel('zero values')
-    plt.title('The number of steps it takes to get to 0 (values of agents that do not reach 0 are set to 30)')
-    plt.grid(True)
-#
-    plt.subplot(2, 2, 3)
-    plt.plot(x_values, iteration_to_zero_array, marker='o', linestyle='-')
-    plt.xlabel('r values')
-    plt.ylabel('iteration to zero values')
-    plt.title('Number of iterations before reaching a Hellinger distance of 0')
-    plt.grid(True)
-
-    plt.subplot(2, 2, 4)
     plt.plot(x_values, rate_array, marker='o', linestyle='-')
     plt.xlabel('r values')
     plt.ylabel('rate values')
@@ -879,31 +863,9 @@ def plot_results_r(x_values, change_array, zero_array, iteration_to_zero_array, 
     plt.tight_layout()
     plt.show()
 
-def plot_results_mutation(x_values, change_array, zero_array, iteration_to_zero_array, rate_array):
-    plt.figure(figsize=(10, 8))
+def plot_results_mutation(x_values, rate_array):
+    plt.figure(figsize=(5, 4))
 
-    plt.subplot(2, 2, 1)
-    plt.plot(x_values, change_array, marker='o', linestyle='-')
-    plt.xlabel('mutation rate')
-    plt.ylabel('Change in Hellinger distance')
-    plt.title('Change in Hellinger distance over steps')
-    plt.grid(True)
-
-    plt.subplot(2, 2, 2)
-    plt.plot(x_values, zero_array, marker='o', linestyle='-')
-    plt.xlabel('mutation rate')
-    plt.ylabel('zero values')
-    plt.title('The number of steps it takes to get to 0 (values of agents that do not reach 0 are set to 30)')
-    plt.grid(True)
-#
-    plt.subplot(2, 2, 3)
-    plt.plot(x_values, iteration_to_zero_array, marker='o', linestyle='-')
-    plt.xlabel('mutation rate')
-    plt.ylabel('iteration to zero values')
-    plt.title('Number of iterations before reaching a Hellinger distance of 0')
-    plt.grid(True)
-
-    plt.subplot(2, 2, 4)
     plt.plot(x_values, rate_array, marker='o', linestyle='-')
     plt.xlabel('mutation rate')
     plt.ylabel('rate values')
@@ -912,6 +874,7 @@ def plot_results_mutation(x_values, change_array, zero_array, iteration_to_zero_
 
     plt.tight_layout()
     plt.show()
+
 
 def main():
     # Set parameters for the RBN
