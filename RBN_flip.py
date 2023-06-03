@@ -197,9 +197,9 @@ class RBN:
 
         return bin_list
     # not used at the moment, but can be handy
-    # def bin_to_bin_str(self, bin_list):
-    #     bin_str = ''.join(['1' if b else '0' for b in bin_list])
-    #     return bin_str
+    def bin_to_bin_str(self, bin_list):
+        bin_str = ''.join(['1' if b else '0' for b in bin_list])
+        return bin_str
 
     # Generates the next state of the network.
     def step(self, show_plot=False):
