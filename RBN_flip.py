@@ -398,39 +398,23 @@ def one_barplot(network, r, num_T, d_r):
 # This function shows the convergence of error over a number of iterations.
 # Begin the definition of the convergence method
 def convergence(num_T, N, network, r):
-    # Initialize a vector of zeros of size num_T to hold the error norm at each iteration
     resvec = np.zeros(num_T)
-    # Initialize a vector of zeros of size 2**N to hold the combined probability mass function (pmf) at each iteration
     combined_pmf = np.zeros(2 ** N)
-    # Initialize a vector of zeros of size 2**N to hold the combined pmf from the previous iteration
-    combined_pmf_prev = np.zeros(2 ** N)
-    # Loop over the number of iterations (num_T)
     for i in range(num_T):
-        # Generate the logic tables for the network with parameter r
         network.generate_logic_tables(r)
-        # Create the initial state vector and the transition probability matrix for the network
         initial_vector, sparse_matrix = network.create_initial_vector_and_sparse_matrix()
-        # Compute the stationary distribution (pmf) of the network
         pmf = network.find_stationary_distribution(initial_vector, sparse_matrix, tolerance=1e-8)
-        # Update the combined pmf: add the current pmf, then divide by 2 to average
-        combined_pmf += pmf
-        combined_pmf /= 2
-        # Compute the Euclidean norm (2-norm) of the difference between the combined pmf and the previous combined pmf
+        combined_pmf_prev = combined_pmf.copy() # store previous combined_pmf
+        combined_pmf = (i*(combined_pmf_prev) + pmf) / (i+1)
         resvec[i] = np.linalg.norm(combined_pmf - combined_pmf_prev)
-        # Store the current combined pmf for comparison in the next iteration
-        combined_pmf_prev = combined_pmf
-    # Generate an array of iteration numbers for plotting
     iteration = np.linspace(0, num_T - 1, num_T)
-    # Plot the error norm at each iteration
     plt.plot(iteration, resvec, marker='o', linestyle='-')
-    # Set the labels and title of the plot
     plt.xlabel('Iteration')
     plt.ylabel('Error')
     plt.title('Error convergence')
-    # Enable the grid for easier visualization of the data points
     plt.grid(True)
-    # Display the plot
     plt.show()
+
 # This function plots PMF for two scenarios side by side for visual comparison.
 def pmf_barplot(network, r, num_T, d_r):
  # the upgraded bar plot with 2**N  times two bars
@@ -892,6 +876,7 @@ def plot_results_mutation(mutation_values, rate_array):
 def main():
     # Set parameters for the RBN
     K = 4
+    N = 5
     N_agent = 5
     N_environment = 6
     r = 0.5
@@ -899,15 +884,14 @@ def main():
     threshold = 0
     d_r = 0.2
     d_mutation = 0.2
-    num_T = 5
+    num_T = 20
     num_processes = 5
     maxiter = 10
     iteration_for_average = 5
     #p = 0.5
     iterations_convergence = 5
-
-
-    
+    network = RBN(K,N,r)
+    convergence(num_T, N, network, r)
 
 
 if __name__ == "__main__":
