@@ -791,14 +791,14 @@ def calculate_decrease_hellinger_distance_r(K, r, mutation_rate, N_agent, N_envi
             zero_array[i] = sum(steps_to_zero_array) / len(steps_to_zero_array)
     return change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack
 
+
 def convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
     change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_r_multi_av(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
-    max_val = float((hellinger_distance_stack.shape[1] - 1) * d_r)
+    r_values = np.linspace(0, 1, hellinger_distance_stack.shape[1])
 
     for i in range(hellinger_distance_stack.shape[1]):
-        normalized_val = float(i) * d_r / max_val
         steps = np.arange(hellinger_distance_stack.shape[0])
-        plt.plot(steps, hellinger_distance_stack[:, i], label=f'r={normalized_val:.2f}')
+        plt.plot(steps, hellinger_distance_stack[:, i], label=f'r={r_values[i]:.2f}')
 
     plt.xlabel('Step')
     plt.ylabel('Hellinger Distance')
@@ -807,18 +807,18 @@ def convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_
     plt.show()
 def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
     change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
-    max_val = (hellinger_distance_stack.shape[1] - 1) * d_mutation
+    mutation_rates = np.linspace(0, 1, hellinger_distance_stack.shape[1])
 
     for i in range(hellinger_distance_stack.shape[1]):
-        normalized_val = float(i) * d_mutation / max_val
         steps = np.arange(hellinger_distance_stack.shape[0])
-        plt.plot(steps, hellinger_distance_stack[:, i], label=f'mutation rate={normalized_val:.2f}')
+        plt.plot(steps, hellinger_distance_stack[:, i], label=f'mutation rate={mutation_rates[i]:.2f}')
 
     plt.xlabel('Step')
     plt.ylabel('Hellinger Distance')
     plt.title('Hellinger Distance per Step for Different Mutation Rate')
     plt.legend(loc='best')  # shows the legend using best location
     plt.show()
+
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
     r_and_mutation_stack = np.empty((int(1 / d_r), 0))
     for t in range(int(1/d_mutation)):
@@ -831,11 +831,10 @@ def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, mutation_rate, N_
 
 def heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r):
     # Create a list of r values and mutation rates
-    r_values = np.linspace(0, 1, int(1 / d_r) + 1)
-    mutation_rates = np.linspace(0, 1, int(1 / d_mutation) + 1)
+    r_values = np.around(np.linspace(0, 1, int(1 / d_r) + 1), decimals=2)
+    mutation_rates = np.around(np.linspace(0, 1, int(1 / d_mutation) + 1), decimals=2)
 
     data = r_and_mutation_stack
-    print("Our dataset is : ", data)
 
     # Define the size of the figure
     plt.figure(figsize=(10, 8))
@@ -844,9 +843,9 @@ def heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r):
     heat_map = sns.heatmap(data, cmap='viridis', linewidth=1, annot=True,
                            xticklabels=mutation_rates, yticklabels=r_values)
 
-    plt.title("HeatMap using Seaborn Method")
-    plt.xlabel("Mutation values")
-    plt.ylabel("R values")
+    plt.title("HeatMap of learning rate for different Mutation and r values")
+    plt.xlabel("Mutation rate")
+    plt.ylabel("r values")
     plt.show()
 
 def plot_results_r(r_values, rate_array):
@@ -891,7 +890,9 @@ def main():
     #p = 0.5
     iterations_convergence = 5
     network = RBN(K,N,r)
-    convergence(num_T, N, network, r)
+
+    convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter,
+                                        iteration_for_average, d_r, num_T, threshold, num_processes)
 
 
 if __name__ == "__main__":
