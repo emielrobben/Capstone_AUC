@@ -47,9 +47,9 @@ class RBN:
         self.K = K  # Number of inputs per node
         self.N = N  # Number of nodes in the network
         self.r = r  # Flip probability
-        #self.p = p
+        self.p = 0.5
         self.G = nx.DiGraph()
-        self.initialization()
+        self.initialization_exp()
         self.generate_logic_tables(self.r)
 
 
@@ -515,7 +515,7 @@ def sorted_pmf_plot(network, r, num_T, d_r):
 
     plt.xlabel('System States (Decimal Value)')
     plt.ylabel('PMF')
-    plt.title('Sorted PMF values for 0.1 and 0.1 + dr')
+    plt.title('Sorted PMF values for 0.5 and 0.5 + dr')
     plt.legend()
     plt.show()
 
@@ -805,6 +805,8 @@ def convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_
     plt.title('Hellinger Distance per Step for Different r')
     plt.legend(loc='best')  # shows the legend using the best location
     plt.show()
+
+
 def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes):
     change_array, zero_array, iteration_to_zero_array, rate_array, hellinger_distance_stack = calculate_decrease_hellinger_distance_mutation(K, r, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
     mutation_rates = np.linspace(0, 1, hellinger_distance_stack.shape[1])
@@ -818,6 +820,7 @@ def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mu
     plt.title('Hellinger Distance per Step for Different Mutation Rate')
     plt.legend(loc='best')  # shows the legend using best location
     plt.show()
+
 
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, iterations_convergence,mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
     r_and_mutation_stack = np.empty((int(1 / d_r), 0))
@@ -891,13 +894,7 @@ def main():
     iterations_convergence = 5
     network = RBN(K,N,r)
 
-    r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r,iterations_convergence, mutation_rate, N_agent,
-                                                                                         N_environment, maxiter,
-                                                                                         iteration_for_average, d_r,
-                                                                                         d_mutation, num_T, threshold,
-                                                                                         num_processes)
-    heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r)
-
+    convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
 if __name__ == "__main__":
     main()
 #
