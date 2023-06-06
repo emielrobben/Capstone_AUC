@@ -296,7 +296,7 @@ class RBN:
 
 
     # Finds the stationary distribution of the network given an initial state and a transition matrix.
-    def find_stationary_distribution(self, initial_vector, transition_matrix, tolerance, num_iterations=100):
+    def find_stationary_distribution(self, initial_vector, transition_matrix, tolerance, num_iterations=200):
         probability_vector = initial_vector
 
         for i in range(num_iterations):
@@ -754,14 +754,14 @@ def calculate_decrease_hellinger_distance_mutation(K, r, mutation_rate, N_agent,
 
 def calculate_decrease_hellinger_distance_r_multi_av(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold,
                                           num_processes):
-    change_array = np.zeros(int(1 / d_r))
-    zero_array = np.zeros(int(1 / d_r))
-    iteration_to_zero_array = np.zeros(int(1 / d_r))
-    rate_array = np.zeros(int(1 / d_r))
-    hellinger_distance_stack = np.zeros((maxiter, int(1 / d_r)))
+    change_array = np.zeros(int(1 / d_r)+1)
+    zero_array = np.zeros(int(1 / d_r)+1)
+    iteration_to_zero_array = np.zeros(int(1 / d_r)+1)
+    rate_array = np.zeros(int(1 / d_r)+1)
+    hellinger_distance_stack = np.zeros((maxiter, int(1 / d_r)+1))
 
-    for i in range(int(1 / d_r)):
-        r = i / int(1 / d_r)
+    for i in range(int(1 / d_r)+1):
+        r = i / (int(1 / d_r))
         average_count, av_it, av_rate_measure, steps_to_zero_array, av_distance = calculate_average_change_multi_initial(K, N_agent, N_environment, r, d_r, num_T,threshold,num_processes, mutation_rate, maxiter, iteration_for_average)
         av_it /= iteration_for_average
         av_rate_measure /= iteration_for_average
@@ -869,12 +869,12 @@ def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mu
 
 
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, iterations_convergence,mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
-    r_and_mutation_stack = np.empty((int(1 / d_r), 1))
+    r_and_mutation_stack = np.empty((int(1 / d_r)+1, int(1/d_mutation)))
     for t in range(int(1/d_mutation)):
-        d_mutation = t / int(1 / d_mutation)
+        mutation_rate = t / int(1 / d_mutation)
         change_array, zero_array, iteration_to_zero_array, rate_array, distance_per_r_stack = calculate_decrease_hellinger_distance_r_multi_av(K, r, iterations_convergence,mutation_rate, N_agent, N_environment, d_mutation,  maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
 
-        r_and_mutation_stack = np.column_stack((r_and_mutation_stack, rate_array))
+        r_and_mutation_stack[:, t] = rate_array
         print(r_and_mutation_stack)
     return r_and_mutation_stack
 
@@ -890,7 +890,7 @@ def heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r):
     plt.figure(figsize=(10, 8))
 
     # Create the heatmap using seaborn
-    heat_map = sns.heatmap(data, cmap='viridis', linewidth=1, annot=True,
+    heat_map = sns.heatmap(data, fmt=".4f",cmap='viridis', linewidth=1, annot=True,
                            xticklabels=mutation_rates, yticklabels=r_values)
 
     plt.title("HeatMap of learning rate for different Mutation and r values")
@@ -931,11 +931,11 @@ def main():
     r = 0.5  # the value of the flip probability
     mutation_rate = 0.5  # the value of the mutation rate
     threshold = 0  # threshold for when we say the Hellinger distance between an agent and a Environment is negligible
-    d_r = 0.5  # values of the change of r, used for analysis
-    d_mutation = 0.5  # values of the change of the mutation rate, used for analysis
+    d_r = 0.2  # values of the change of r, used for analysis
+    d_mutation = 0.2  # values of the change of the mutation rate, used for analysis
     num_T = 2  # the number of pmfs that is used to create a pmf that is used to calculate the Fisher information
-    maxiter = 2  # maximum number of iterations in the mutation process
-    iteration_for_average = 2  #amount of iterations of initializations of agents and environments that is used for analysis.
+    maxiter = 50  # maximum number of iterations in the mutation process
+    iteration_for_average = 5  #amount of iterations of initializations of agents and environments that is used for analysis.
     #p = 0.5
     iterations_convergence = 5  # Not used at the moment
     num_processes = 10  # Not used at the moment
