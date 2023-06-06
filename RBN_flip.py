@@ -869,8 +869,9 @@ def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mu
 
 
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, iterations_convergence,mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
-    r_and_mutation_stack = np.empty((int(1 / d_r), 0))
+    r_and_mutation_stack = np.empty((int(1 / d_r), 1))
     for t in range(int(1/d_mutation)):
+        d_mutation = t / int(1 / d_mutation)
         change_array, zero_array, iteration_to_zero_array, rate_array, distance_per_r_stack = calculate_decrease_hellinger_distance_r_multi_av(K, r, iterations_convergence,mutation_rate, N_agent, N_environment, d_mutation,  maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
 
         r_and_mutation_stack = np.column_stack((r_and_mutation_stack, rate_array))
@@ -923,24 +924,30 @@ def plot_results_mutation(mutation_values, rate_array):
 
 def main():
     # Set parameters for the RBN
-    K = 4  #Connectivity
+    K = 2  #Connectivity
     N = 5
-    N_agent = 4  # Number of nodes agent
-    N_environment = 5  # Number of nodes environment
+    N_agent = 3  # Number of nodes agent
+    N_environment = 4  # Number of nodes environment
     r = 0.5  # the value of the flip probability
     mutation_rate = 0.5  # the value of the mutation rate
     threshold = 0  # threshold for when we say the Hellinger distance between an agent and a Environment is negligible
-    d_r = 0.2  # values of the change of r, used for analysis
-    d_mutation = 0.2  # values of the change of the mutation rate, used for analysis
-    num_T = 20  # the number of pmfs that is used to create a pmf that is used to calculate the Fisher information
-    maxiter = 50  # maximum number of iterations in the mutation process
-    iteration_for_average = 100  #amount of iterations of initializations of agents and environments that is used for analysis.
+    d_r = 0.5  # values of the change of r, used for analysis
+    d_mutation = 0.5  # values of the change of the mutation rate, used for analysis
+    num_T = 2  # the number of pmfs that is used to create a pmf that is used to calculate the Fisher information
+    maxiter = 2  # maximum number of iterations in the mutation process
+    iteration_for_average = 2  #amount of iterations of initializations of agents and environments that is used for analysis.
     #p = 0.5
     iterations_convergence = 5  # Not used at the moment
     num_processes = 10  # Not used at the moment
     network = RBN(K,N,r)
 
-    convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+    r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, iterations_convergence,
+                                                                                         mutation_rate, N_agent,
+                                                                                         N_environment, maxiter,
+                                                                                         iteration_for_average, d_r,
+                                                                                         d_mutation, num_T, threshold,
+                                                                                         num_processes)
+    heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r)
 if __name__ == "__main__":
     main()
 #
