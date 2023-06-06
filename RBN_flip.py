@@ -121,7 +121,7 @@ class RBN:
     #             if random.random() < increment_prob:
     #                 truth_table[j] = not truth_table[j]
     #         self.G.nodes[i]["truth_table"] = truth_table
-    import random
+
 
     def modify_logic_tables(self, increment_prob):
         for i in self.G.nodes:
