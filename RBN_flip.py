@@ -114,13 +114,59 @@ class RBN:
 
     #This method modifies the logic tables, toggling the state of a node with a given probability.
 
+    # def modify_logic_tables(self, increment_prob):
+    #     for i in self.G.nodes:
+    #         truth_table = self.G.nodes[i]["truth_table"]
+    #         for j in range(len(truth_table)):
+    #             if random.random() < increment_prob:
+    #                 truth_table[j] = not truth_table[j]
+    #         self.G.nodes[i]["truth_table"] = truth_table
+    import random
+
     def modify_logic_tables(self, increment_prob):
         for i in self.G.nodes:
             truth_table = self.G.nodes[i]["truth_table"]
-            for j in range(len(truth_table)):
-                if random.random() < increment_prob:
-                    truth_table[j] = not truth_table[j]
+            if random.random() < increment_prob:
+                if random.random() < 0.2:  # 50% chance to do bitflip or swap
+                    # Bitflip
+                    index_to_flip = random.randint(0, len(truth_table) - 1)
+                    truth_table[index_to_flip] = not truth_table[index_to_flip]
+                else:
+                    # Swap
+                    # Get the indexes of zeros and ones
+                    zeros = [j for j, bit in enumerate(truth_table) if bit == 0]
+                    ones = [j for j, bit in enumerate(truth_table) if bit == 1]
+
+                    # Calculate the swap proportion
+                    swap_count = int(len(truth_table) * 0.5 * increment_prob)  # Change this value to set swap proportion
+
+                    # Select indexes to swap. If there aren't enough elements, reduce the swap count
+                    zeros_to_swap = random.sample(zeros, min(swap_count, len(zeros)))
+                    ones_to_swap = random.sample(ones, min(swap_count, len(ones)))
+
+                    # Swap zeros and ones
+                    for zero_index, one_index in zip(zeros_to_swap, ones_to_swap):
+                        truth_table[zero_index], truth_table[one_index] = truth_table[one_index], truth_table[
+                            zero_index]
+
             self.G.nodes[i]["truth_table"] = truth_table
+
+    # def modify_logic_tables(self, increment_prob):
+    #     for i in self.G.nodes:
+    #         truth_table = self.G.nodes[i]["truth_table"]
+    #         for j in range(len(truth_table)):
+    #             if random.random() < increment_prob:
+    #                 # Choose between bit flip or bit swap
+    #                 if random.random() < 0.5:
+    #                     # Bit flip
+    #                     truth_table[j] = not truth_table[j]
+    #                 else:
+    #                     # Bit swap
+    #                     if len(truth_table) > 1:  # Can't swap if there's only one element
+    #                         swap_with = random.choice([k for k in range(len(truth_table)) if
+    #                                                    k != j])  # Select a random index different from j
+    #                         truth_table[j], truth_table[swap_with] = truth_table[swap_with], truth_table[j]
+    #         self.G.nodes[i]["truth_table"] = truth_table
     # def modify_logic_tables(self, increment_prob):
     #     for i in self.G.nodes:
     #         truth_table = self.G.nodes[i].get("truth_table")
@@ -877,21 +923,21 @@ def plot_results_mutation(mutation_values, rate_array):
 
 def main():
     # Set parameters for the RBN
-    K = 4
+    K = 4  #Connectivity
     N = 5
-    N_agent = 5
-    N_environment = 6
-    r = 0.5
-    mutation_rate = 0.5
-    threshold = 0
-    d_r = 0.1
-    d_mutation = 0.1
-    num_T = 20
-    num_processes = 10
-    maxiter = 100
-    iteration_for_average = 20
+    N_agent = 4  # Number of nodes agent
+    N_environment = 5  # Number of nodes environment
+    r = 0.5  # the value of the flip probability
+    mutation_rate = 0.5  # the value of the mutation rate
+    threshold = 0  # threshold for when we say the Hellinger distance between an agent and a Environment is negligible
+    d_r = 0.2  # values of the change of r, used for analysis
+    d_mutation = 0.2  # values of the change of the mutation rate, used for analysis
+    num_T = 20  # the number of pmfs that is used to create a pmf that is used to calculate the Fisher information
+    maxiter = 50  # maximum number of iterations in the mutation process
+    iteration_for_average = 100  #amount of iterations of initializations of agents and environments that is used for analysis.
     #p = 0.5
-    iterations_convergence = 5
+    iterations_convergence = 5  # Not used at the moment
+    num_processes = 10  # Not used at the moment
     network = RBN(K,N,r)
 
     convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment,d_mutation, maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
