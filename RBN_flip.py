@@ -294,7 +294,7 @@ class RBN:
 
         return initial_vector, transition_matrix
 
-
+    #
     # Finds the stationary distribution of the network given an initial state and a transition matrix.
     def find_stationary_distribution(self, initial_vector, transition_matrix, tolerance, num_iterations=200):
         probability_vector = initial_vector
