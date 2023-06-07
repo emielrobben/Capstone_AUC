@@ -67,7 +67,7 @@ class RBN:
                 self.G.add_edge(v, u)
         for i in range(self.N):
             self.G.nodes[i]["state"] = random.choice([True, False])
-
+    #
     def initialization_exp(self):
         # Create a Watts-Strogatz small-world network
         self.G = nx.watts_strogatz_graph(self.N, self.K, self.p)
