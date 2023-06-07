@@ -869,8 +869,8 @@ def convergence_plots_mutation(K, r, mutation_rate, N_agent, N_environment, d_mu
 
 
 def calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, iterations_convergence,mutation_rate, N_agent, N_environment, maxiter, iteration_for_average,  d_r, d_mutation, num_T, threshold, num_processes):
-    r_and_mutation_stack = np.empty((int(1 / d_r)+1, int(1/d_mutation)))
-    for t in range(int(1/d_mutation)):
+    r_and_mutation_stack = np.empty((int(1 / d_r)+1, int(1/d_mutation)+1))
+    for t in range(int(1/d_mutation)+1):
         mutation_rate = t / int(1 / d_mutation)
         change_array, zero_array, iteration_to_zero_array, rate_array, distance_per_r_stack = calculate_decrease_hellinger_distance_r_multi_av(K, r, iterations_convergence,mutation_rate, N_agent, N_environment, d_mutation,  maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
 
