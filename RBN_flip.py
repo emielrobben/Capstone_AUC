@@ -348,8 +348,8 @@ def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     # Plot F_array against the equally spaced values
     x_values = np.linspace(0, 1, len(F_array))
     plt.plot(x_values, F_array, marker='o', linestyle='-')
-    plt.xlabel('r values')
-    plt.ylabel('Fisher Information')
+    plt.xlabel('r')
+    plt.ylabel('F(r)')
     plt.title('Fisher information plotted for different r ')
     plt.grid(True)
 
