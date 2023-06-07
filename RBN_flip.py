@@ -49,7 +49,7 @@ class RBN:
         self.r = r  # Flip probability
         self.p = 0.5
         self.G = nx.DiGraph()
-        self.initialization_exp()
+        self.initialization()
         self.generate_logic_tables(self.r)
 
 
@@ -112,21 +112,40 @@ class RBN:
             self.G.nodes[i]["inputs"] = inputs
             self.G.nodes[i]["truth_table"] = truth_table
 
-    def generate_logic_tables_max_diff(self, original_r):
-        # Compute the new r to maximize difference
-        new_r = 1 - original_r
-
+    def generate_logic_tables_random(self):
         # Iterate over all nodes
         for i in self.G.nodes:
+            # Compute a random r between 0 and 1 for each node
+            r = random.random()
+
             # Get all predecessor nodes
             inputs = list(self.G.predecessors(i))
 
-            # Generate truth table with entries based on the new r
-            truth_table = [random.random() < new_r for _ in range(2 ** len(inputs))]
+            # Generate truth table with entries based on the random r
+            truth_table = [random.random() < r for _ in range(2 ** len(inputs))]
 
             # Assign the inputs and truth table to the node
             self.G.nodes[i]["inputs"] = inputs
             self.G.nodes[i]["truth_table"] = truth_table
+
+    # def generate_logic_tables_max_diff(self, original_r):
+    #     # Compute the new r to maximize difference
+    #     if original_r == 0.5:
+    #         new_r = random.choice([0, 1])  # if original_r is 0.5, randomly choose 0 or 1
+    #     else:
+    #         new_r = 1 - original_r
+    #
+    #     # Iterate over all nodes
+    #     for i in self.G.nodes:
+    #         # Get all predecessor nodes
+    #         inputs = list(self.G.predecessors(i))
+    #
+    #         # Generate truth table with entries based on the new r
+    #         truth_table = [random.random() < new_r for _ in range(2 ** len(inputs))]
+    #
+    #         # Assign the inputs and truth table to the node
+    #         self.G.nodes[i]["inputs"] = inputs
+    #         self.G.nodes[i]["truth_table"] = truth_table
 
     def modify_logic_tables(self, increment_prob):
         for i in self.G.nodes:
@@ -156,84 +175,7 @@ class RBN:
 
             self.G.nodes[i]["truth_table"] = truth_table
 
-    # def modify_logic_tables(self, increment_prob):
-    #     for i in self.G.nodes:
-    #         truth_table = self.G.nodes[i]["truth_table"]
-    #         for j in range(len(truth_table)):
-    #             if random.random() < increment_prob:
-    #                 # Choose between bit flip or bit swap
-    #                 if random.random() < 0.5:
-    #                     # Bit flip
-    #                     truth_table[j] = not truth_table[j]
-    #                 else:
-    #                     # Bit swap
-    #                     if len(truth_table) > 1:  # Can't swap if there's only one element
-    #                         swap_with = random.choice([k for k in range(len(truth_table)) if
-    #                                                    k != j])  # Select a random index different from j
-    #                         truth_table[j], truth_table[swap_with] = truth_table[swap_with], truth_table[j]
-    #         self.G.nodes[i]["truth_table"] = truth_table
-    # def modify_logic_tables(self, increment_prob):
-    #     for i in self.G.nodes:
-    #         truth_table = self.G.nodes[i].get("truth_table")
-    #         if truth_table is None:
-    #             print(f"Skipping node {i} because it has no truth_table")
-    #             continue
-    #
-    #         num_zeros = truth_table.count(False)
-    #         num_ones = truth_table.count(True)
-    #
-    #         zeros_to_flip = round(num_zeros * increment_prob)
-    #         ones_to_flip = round(num_ones * increment_prob)
-    #
-    #         # flip zeros
-    #         zero_indices = [j for j, x in enumerate(truth_table) if x == False]
-    #         random.shuffle(zero_indices)
-    #         for idx in zero_indices[:zeros_to_flip]:
-    #             truth_table[idx] = not truth_table[idx]
-    #
-    #         # flip ones
-    #         one_indices = [j for j, x in enumerate(truth_table) if x == True]
-    #         random.shuffle(one_indices)
-    #         for idx in one_indices[:ones_to_flip]:
-    #             truth_table[idx] = not truth_table[idx]
-    #
-    #         self.G.nodes[i]["truth_table"] = truth_table
-    import random
 
-    # def modify_logic_tables(self, increment_prob):
-    #     for i in self.G.nodes:
-    #         truth_table = self.G.nodes[i]["truth_table"]
-    #
-    #         # Count the number of 0s and 1s in the truth table
-    #         count_0 = truth_table.count(0)
-    #         count_1 = truth_table.count(1)
-    #
-    #         # Compute the ratio r of 0s to total elements
-    #         r = count_0 / len(truth_table)
-    #
-    #         # Check if the desired r is achievable
-    #         if r > count_1 / (count_0 + count_1):
-    #             # If not, fallback to flipping bits randomly
-    #             for j in range(len(truth_table)):
-    #                 if random.random() < increment_prob:
-    #                     truth_table[j] = not truth_table[j]
-    #         else:
-    #             # Calculate the number of bits to flip
-    #             n_to_flip = int(len(truth_table) * increment_prob)
-    #             n_0_to_flip = int(n_to_flip * r)
-    #             n_1_to_flip = n_to_flip - n_0_to_flip
-    #
-    #             # Randomly select bits to flip
-    #             to_flip_0 = random.sample([i for i, bit in enumerate(truth_table) if bit == 0], n_0_to_flip)
-    #             to_flip_1 = random.sample([i for i, bit in enumerate(truth_table) if bit == 1], n_1_to_flip)
-    #
-    #             # Flip the selected bits
-    #             for j in to_flip_0:
-    #                 truth_table[j] = 1
-    #             for j in to_flip_1:
-    #                 truth_table[j] = 0
-    #
-    #         self.G.nodes[i]["truth_table"] = truth_table
 
     # Helper functions to convert from binary to decimal and vice versa.
     def bin_to_dec(self, bin_list):
@@ -597,7 +539,7 @@ def create_agent_and_environment(K, N_agent, N_environment, r, d_r, num_T, thres
     environment = copy.deepcopy(agent)
     N_diff = abs(N_environment - N_agent)
     environment.expand_network(N_diff)
-    environment.generate_logic_tables_max_diff(r)
+    environment.generate_logic_tables_random()
 
     #If we want to know the r for which the Fisher information is maximal:
     # F_array, diff_array = agent.compute_Fisher(d_r, num_T, threshold, num_processes)
@@ -937,23 +879,29 @@ def main():
     r = 0.5  # the value of the flip probability
     mutation_rate = 0.5  # the value of the mutation rate
     threshold = 0  # threshold for when we say the Hellinger distance between an agent and a Environment is negligible
-    d_r = 0.2  # values of the change of r, used for analysis
-    d_mutation = 0.2  # values of the change of the mutation rate, used for analysis
-    num_T = 2  # the number of pmfs that is used to create a pmf that is used to calculate the Fisher information
-    maxiter = 50  # maximum number of iterations in the mutation process
-    iteration_for_average = 5  #amount of iterations of initializations of agents and environments that is used for analysis.
+    d_r = 0.1  # values of the change of r, used for analysis
+    d_mutation = 0.1  # values of the change of the mutation rate, used for analysis
+    num_T = 20  # the number of pmfs that is used to create a pmf that is used to calculate the Fisher information
+    maxiter = 50 # maximum number of iterations in the mutation process
+    iteration_for_average = 40  #amount of iterations of initializations of agents and environments that is used for analysis.
     #p = 0.5
     iterations_convergence = 5  # Not used at the moment
     num_processes = 10  # Not used at the moment
     network = RBN(K,N,r)
 
+
+    convergence_plots_r(K, r, iterations_convergence, mutation_rate, N_agent, N_environment, d_mutation,
+                                 maxiter, iteration_for_average, d_r, num_T, threshold, num_processes)
+
     r_and_mutation_stack = calculate_decrease_Hellinger_per_r_and_mutation_rate(K, r, iterations_convergence,
-                                                                                         mutation_rate, N_agent,
-                                                                                         N_environment, maxiter,
-                                                                                         iteration_for_average, d_r,
-                                                                                         d_mutation, num_T, threshold,
-                                                                                         num_processes)
+                                                                                mutation_rate, N_agent,
+                                                                                N_environment, maxiter,
+                                                                                iteration_for_average, d_r,
+                                                                                d_mutation, num_T, threshold,
+                                                                                num_processes)
     heatmap_r_mutation(r_and_mutation_stack, d_mutation, d_r)
+
+
 if __name__ == "__main__":
     main()
 #
