@@ -349,7 +349,7 @@ def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     x_values = np.linspace(0, 1, len(F_array))
     plt.plot(x_values, F_array, marker='o', linestyle='-')
     plt.xlabel('r values')
-    plt.ylabel('F_array values')
+    plt.ylabel('Fisher Information')
     plt.title('Fisher information plotted for different r values')
     plt.grid(True)
 
@@ -358,7 +358,7 @@ def Fisher_plot(d_r, num_T, threshold, num_processes, network):
     x_values = np.linspace(0, 1, len(diff_array))
     plt.plot(x_values, diff_array, marker='o', linestyle='-')
     plt.xlabel('r values')
-    plt.ylabel('diff_array values')
+    plt.ylabel('||pmf(x, r) - pmf(x, r+dr)||')
     plt.title('Values of the difference in pmf plotted for different r values')
     plt.grid(True)
     # plt.savefig(r'C:\Users\emiel\OneDrive\Bureaublad\Capstone_g\figure.png')
