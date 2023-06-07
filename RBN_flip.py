@@ -112,16 +112,21 @@ class RBN:
             self.G.nodes[i]["inputs"] = inputs
             self.G.nodes[i]["truth_table"] = truth_table
 
-    #This method modifies the logic tables, toggling the state of a node with a given probability.
+    def generate_logic_tables_max_diff(self, original_r):
+        # Compute the new r to maximize difference
+        new_r = 1 - original_r
 
-    # def modify_logic_tables(self, increment_prob):
-    #     for i in self.G.nodes:
-    #         truth_table = self.G.nodes[i]["truth_table"]
-    #         for j in range(len(truth_table)):
-    #             if random.random() < increment_prob:
-    #                 truth_table[j] = not truth_table[j]
-    #         self.G.nodes[i]["truth_table"] = truth_table
+        # Iterate over all nodes
+        for i in self.G.nodes:
+            # Get all predecessor nodes
+            inputs = list(self.G.predecessors(i))
 
+            # Generate truth table with entries based on the new r
+            truth_table = [random.random() < new_r for _ in range(2 ** len(inputs))]
+
+            # Assign the inputs and truth table to the node
+            self.G.nodes[i]["inputs"] = inputs
+            self.G.nodes[i]["truth_table"] = truth_table
 
     def modify_logic_tables(self, increment_prob):
         for i in self.G.nodes:
@@ -592,6 +597,7 @@ def create_agent_and_environment(K, N_agent, N_environment, r, d_r, num_T, thres
     environment = copy.deepcopy(agent)
     N_diff = abs(N_environment - N_agent)
     environment.expand_network(N_diff)
+    environment.generate_logic_tables_max_diff(r)
 
     #If we want to know the r for which the Fisher information is maximal:
     # F_array, diff_array = agent.compute_Fisher(d_r, num_T, threshold, num_processes)
